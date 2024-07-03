@@ -9,7 +9,7 @@ import (
 var (
 	ErrEmptyKeyName              = errors.New("key name cannot be empty")
 	ErrKeyContainsWhitespaces    = errors.New("key name cannot contain spaces")
-	ErrFileSystemNotMounted      = errors.New("exit status 1")
+	ErrInvalidPassword           = errors.New("invalid password")
 	ErrNotADirectory             = errors.New("is not a directory")
 	ErrInvalidEncryptedDirectory = errors.New("invalid gocryptfs encrypted directory")
 )
