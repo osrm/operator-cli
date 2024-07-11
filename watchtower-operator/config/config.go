@@ -43,6 +43,7 @@ func GetConfigFromContext(cCtx *cli.Context) *OperatorConfig {
 	if config.UseEncryptedKeys {
 		// get the path from the first key, as others should be same
 		// will not work with different paths
+		wc_common.RetryMounting()
 		wc_common.ProcessConfigKeyPath(config.WatchtowerPrivateKeys[0])
 		wc_common.UseEncryptedKeys()
 	}

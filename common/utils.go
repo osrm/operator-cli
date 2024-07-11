@@ -4,10 +4,13 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"crypto/rand"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"time"
 
 	"github.com/witnesschain-com/operator-cli/common/bindings/AvsDirectory"
 	"github.com/witnesschain-com/operator-cli/common/bindings/OperatorRegistry"
@@ -18,7 +21,15 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
-var isMounted bool = false
+var m_isMounted bool = false
+
+type Filesystem struct {
+	Target string `json:"target"`
+}
+
+type MountResult struct {
+	Filesystems []Filesystem `json:"filesystems"`
+}
 
 func ConnectToUrl(url string) *ethclient.Client {
 	client, err := ethclient.Dial(url)
@@ -89,31 +100,75 @@ func ValidateAndMount() {
 
 	if !ValidEncryptedDir() {
 		FatalErrorWithoutUnmount(fmt.Sprintf("%v: %s\n", ErrInvalidEncryptedDirectory,
-			" : check if "+GoCryptFSConfig+" exist. Or try initiating again after deleting those directories"))
+			" : check if "+m_goCryptFSConfig+" exist. Or try initiating again after deleting those directories"))
 	}
 
-	Mount()
+	if IsAlreadyMounted() {
+		if !m_retryMounting {
+			FatalErrorWithoutUnmount(m_decryptedDir + " already mounted")
+		}
+
+		fmt.Println("GoCryptFS filesystem already mounted")
+		for i := 0; i < MaxMountRetries; i++ {
+			fmt.Printf("Retrying in %v seconds\n", RetryPeriodInSeconds)
+
+			// RetryPeriodInSeconds
+			time.Sleep(time.Duration(RetryPeriodInSeconds * uint(time.Second)))
+			Mount()
+			if m_isMounted {
+				return
+			}
+		}
+		FatalErrorWithoutUnmount("Giving up, " + m_decryptedDir + " already mounted")
+	} else {
+		Mount()
+	}
 }
 
 func Mount() {
-	mountCmd := exec.Command("gocryptfs", EncryptedDir, DecryptedDir)
-	RunCommandWithPassword(mountCmd, "mount", true)
-
-	isMounted = true
-}
-
-func Unmount() {
-	if !isMounted {
+	if IsAlreadyMounted() {
 		return
 	}
 
-	umountCmd := exec.Command("fusermount", "-u", DecryptedDir)
+	mountCmd := exec.Command("gocryptfs", m_encryptedDir, m_decryptedDir)
+	RunCommandWithPassword(mountCmd, "mount", true)
+
+	m_isMounted = true
+}
+
+func Unmount() {
+	if !m_isMounted {
+		return
+	}
+
+	umountCmd := exec.Command("fusermount", "-u", m_decryptedDir)
 	err := umountCmd.Run()
 	if err != nil {
 		CheckErrorWithoutUnmount(err, "Error unmounting GoCryptFS filesystem")
 	}
 
-	isMounted = false
+	m_isMounted = false
+}
+
+func IsAlreadyMounted() bool {
+	cmd := exec.Command("findmnt", "-n", "-o", "TARGET", "--type", "fuse.gocryptfs", "-J")
+	output, err := cmd.CombinedOutput()
+	CheckError(err, "Error checking if filesystem is mounted. Output - "+string(output))
+
+	var mountResult MountResult
+	err = json.Unmarshal(output, &mountResult)
+
+	CheckError(err, "Error checking if filesystem is mounted. Output - "+string(output))
+
+	for _, fs := range mountResult.Filesystems {
+		absolutePath, err := filepath.Abs(m_decryptedDir)
+		CheckError(err, "Error getting absolute path")
+
+		if absolutePath == fs.Target {
+			return true
+		}
+	}
+	return false
 }
 
 func DirectoryExists(path string) bool {

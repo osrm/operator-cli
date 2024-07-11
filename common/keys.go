@@ -11,11 +11,12 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var useEncryptedKeys bool = false
-var isFullPath bool = false
-var EncryptedDir string = EncryptedDirName
-var DecryptedDir string = DecryptedDirName
-var GoCryptFSConfig string = GoCryptFSConfigName
+var m_useEncryptedKeys bool = false
+var m_isFullPath bool = false
+var m_retryMounting bool = false
+var m_encryptedDir string = EncryptedDirName
+var m_decryptedDir string = DecryptedDirName
+var m_goCryptFSConfig string = GoCryptFSConfigName
 
 func KeysCmd() *cli.Command {
 	var keysCmd = &cli.Command{
@@ -99,12 +100,12 @@ func ListCmd() *cli.Command {
 func InitKeyStore(cCtx *cli.Context) {
 	insecure := cCtx.Bool("insecure")
 
-	if !DirectoryExists(EncryptedDir) {
-		CreateDirectory(EncryptedDir)
+	if !DirectoryExists(m_encryptedDir) {
+		CreateDirectory(m_encryptedDir)
 	}
 
-	if !DirectoryExists(DecryptedDir) {
-		CreateDirectory(DecryptedDir)
+	if !DirectoryExists(m_decryptedDir) {
+		CreateDirectory(m_decryptedDir)
 	}
 
 	InitGocryptfs(insecure)
@@ -127,7 +128,7 @@ func DeleteKeyCmd(cCtx *cli.Context) {
 }
 
 func ListKeyCmd() {
-	dir, err := os.Open(DecryptedDir)
+	dir, err := os.Open(m_decryptedDir)
 	CheckError(err, "Error opening directory")
 	defer dir.Close()
 
@@ -147,7 +148,7 @@ func ListKeyCmd() {
 }
 
 func InitGocryptfs(insecure bool) {
-	initCmd := exec.Command("gocryptfs", "-init", "-plaintextnames", EncryptedDir)
+	initCmd := exec.Command("gocryptfs", "-init", "-plaintextnames", m_encryptedDir)
 
 	RunCommandWithPassword(initCmd, "init", insecure)
 }
@@ -164,7 +165,7 @@ func ValidateKeyName(keyName string) error {
 }
 
 func CreateKey(keyName string) {
-	keyFile := DecryptedDir + "/" + keyName
+	keyFile := m_decryptedDir + "/" + keyName
 
 	_, err := os.Stat(keyFile)
 	if !os.IsNotExist(err) {
@@ -184,7 +185,7 @@ func CreateKey(keyName string) {
 }
 
 func DeleteKey(keyName string) {
-	keyFile := DecryptedDir + "/" + keyName
+	keyFile := m_decryptedDir + "/" + keyName
 	err := os.Remove(keyFile)
 	CheckError(err, "Error deleting key\n")
 
@@ -206,28 +207,32 @@ func CreateKeyFileAndStoreKey(keyFile string, privateKey string) {
 }
 
 func ValidEncryptedDir() bool {
-	_, err := os.Stat(GoCryptFSConfig)
+	_, err := os.Stat(m_goCryptFSConfig)
 
 	return !os.IsNotExist(err)
 }
 
 func GetPrivateKeyFromFile(keyName string) string {
-	keyFile := DecryptedDir + "/" + keyName
+	keyFile := m_decryptedDir + "/" + keyName
 	data, err := os.ReadFile(keyFile)
 	CheckError(err, "Error reading key file")
 	return string(data)
 }
 
 func UseEncryptedKeys() {
-	useEncryptedKeys = true
+	m_useEncryptedKeys = true
 	ValidateAndMount()
+}
+
+func RetryMounting() {
+	m_retryMounting = true
 }
 
 func ProcessConfigKeyPath(keyPath string) {
 	dir, file := filepath.Split(keyPath)
 
 	if file == keyPath && dir == "." {
-		fmt.Printf("Using the default key path : %s\n", EncryptedDir)
+		fmt.Printf("Using the default key path : %s\n", m_encryptedDir)
 		// this means they have given only the key name only,
 		// do nothing and use default path
 		return
@@ -236,18 +241,18 @@ func ProcessConfigKeyPath(keyPath string) {
 	// go to the grand parent directory of the key path to get the .encrypted_keys path
 	parentPath := filepath.Dir(filepath.Dir(dir))
 
-	EncryptedDir = filepath.Join(parentPath, EncryptedDirName)
-	DecryptedDir = filepath.Join(parentPath, DecryptedDirName)
-	GoCryptFSConfig = filepath.Join(parentPath, GoCryptFSConfigName)
-	isFullPath = true
+	m_encryptedDir = filepath.Join(parentPath, EncryptedDirName)
+	m_decryptedDir = filepath.Join(parentPath, DecryptedDirName)
+	m_goCryptFSConfig = filepath.Join(parentPath, GoCryptFSConfigName)
+	m_isFullPath = true
 
-	fmt.Printf("Using the key path : %s\n", EncryptedDir)
+	fmt.Printf("Using the key path : %s\n", m_encryptedDir)
 }
 
 func GetPrivateKey(key string) string {
-	if useEncryptedKeys {
+	if m_useEncryptedKeys {
 		keyName := key
-		if isFullPath {
+		if m_isFullPath {
 			_, keyName = filepath.Split(key)
 		}
 		return GetPrivateKeyFromFile(keyName)
