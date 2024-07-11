@@ -6,6 +6,7 @@ import (
 
 	wc_common "github.com/witnesschain-com/operator-cli/common"
 	"github.com/witnesschain-com/operator-cli/common/bindings/AvsDirectory"
+	"github.com/witnesschain-com/operator-cli/common/bindings/OperatorRegistry"
 	"github.com/witnesschain-com/operator-cli/common/bindings/WitnessHub"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -38,16 +39,12 @@ func GetOpertorSignature(client *ethclient.Client, avsDirectory *AvsDirectory.Av
 	return operatorSignature
 }
 
-func SignOperatorAddress(client *ethclient.Client, privateKey *ecdsa.PrivateKey, OperatorAddress common.Address, expiry big.Int) []byte {
-	paddedAddr := wc_common.GetPaddedValue(OperatorAddress.Bytes())
-	paddedExpiry := wc_common.GetPaddedValue(expiry.Bytes())
+func SignOperatorAddress(client *ethclient.Client, operatorRegistry *OperatorRegistry.OperatorRegistry, watchtowerPrivateKey *ecdsa.PrivateKey, operatorAddress common.Address, salt [32]byte, expiry *big.Int) []byte {
+	digestHash, err := operatorRegistry.CalculateWatchtowerRegistrationMessageHash(&bind.CallOpts{}, operatorAddress, salt, expiry)
+	wc_common.CheckError(err, "Digest hash calculation failed")
 
-	encodedData := append(paddedAddr[:], paddedExpiry[:]...)
-	hashedMessage := crypto.Keccak256(encodedData)
-	hashedEthMessage := crypto.Keccak256(append([]byte("\x19Ethereum Signed Message:\n32"), hashedMessage...))
-
-	signature, err := crypto.Sign(hashedEthMessage, privateKey)
-	wc_common.CheckError(err, "Signing operator address failed")
+	signature, err := crypto.Sign(digestHash[:], watchtowerPrivateKey)
+	wc_common.CheckError(err, "Signing the digest hash failed")
 
 	v := new(big.Int).SetBytes(signature[64:])
 	v.Add(v, big.NewInt(27))
