@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/witnesschain-com/operator-cli/common/bindings/AvsDirectory"
@@ -215,6 +216,32 @@ func RunCommandWithPassword(cmd *exec.Cmd, desc string, insecure bool) {
 
 	err = cmd.Wait()
 	CheckError(err, "Command failed for "+desc)
+}
+
+func AllowKeyOverwrite(fileLoc string) bool {
+	_, err := os.Stat(fileLoc)
+	if !os.IsNotExist(err) {
+		fmt.Printf("Key already exists, do you want to overwrite? (y/n): ")
+		var response string
+		fmt.Scanln(&response)
+
+		if strings.ToLower(response) != "y" {
+			return false
+		}
+	}
+
+	return true
+}
+
+func GetPasswordFromPrompt(insecure bool, desc string) string {
+	fmt.Printf("Enter password to %s: ", desc)
+	password := ReadHiddenInput()
+
+	if !insecure {
+		ValidatePassword(password)
+	}
+
+	return password
 }
 
 func IsWatchtowerRegistered(watchtower common.Address, operatorRegistry *OperatorRegistry.OperatorRegistry) bool {

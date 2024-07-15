@@ -35,7 +35,7 @@ func RegisterOperatorToAVS(config *operator_config.OperatorConfig) {
 	operatorRegistry, err := OperatorRegistry.NewOperatorRegistry(config.OperatorRegistryAddress, client)
 	wc_common.CheckError(err, "Instantiating OperatorRegistry contract failed")
 
-	operatorPrivateKey, operatorAddress := wc_common.GetECDSAPrivateAndPublicKey(wc_common.GetPrivateKey(config.OperatorPrivateKey))
+	operatorPrivateKey, operatorAddress := wc_common.GetECDSAPrivateAndPublicKey(wc_common.GetPrivateKey(config.OperatorPrivateKey, config.KeyType))
 	wc_common.CheckError(err, "Converting private key to ECDSA format failed")
 
 	if !wc_common.IsOperatorWhitelisted(operatorAddress, operatorRegistry) {

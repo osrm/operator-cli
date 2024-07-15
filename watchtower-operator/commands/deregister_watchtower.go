@@ -33,7 +33,7 @@ func DeRegisterWatchtower(config *operator_config.OperatorConfig) {
 	operatorRegistry, err := OperatorRegistry.NewOperatorRegistry(config.OperatorRegistryAddress, client)
 	wc_common.CheckError(err, "Instantiating OperatorRegistry contract failed")
 
-	operatorPrivateKey, operatorAddress := wc_common.GetECDSAPrivateAndPublicKey(wc_common.GetPrivateKey(config.OperatorPrivateKey))
+	operatorPrivateKey, operatorAddress := wc_common.GetECDSAPrivateAndPublicKey(wc_common.GetPrivateKey(config.OperatorPrivateKey, config.KeyType))
 
 	if !wc_common.IsOperatorWhitelisted(operatorAddress, operatorRegistry) {
 		fmt.Printf("Operator %s is not whitelisted\n", operatorAddress.Hex())
@@ -44,7 +44,7 @@ func DeRegisterWatchtower(config *operator_config.OperatorConfig) {
 
 	for _, watchTowerPkName := range config.WatchtowerPrivateKeys {
 
-		_, watchtowerAddress := wc_common.GetECDSAPrivateAndPublicKey(wc_common.GetPrivateKey(watchTowerPkName))
+		_, watchtowerAddress := wc_common.GetECDSAPrivateAndPublicKey(wc_common.GetPrivateKey(watchTowerPkName, config.KeyType))
 
 		if !wc_common.IsWatchtowerRegistered(watchtowerAddress, operatorRegistry) {
 			fmt.Printf("Watchtower %s is not registered\n", watchtowerAddress.Hex())

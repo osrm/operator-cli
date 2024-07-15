@@ -31,7 +31,7 @@ func DeRegisterOperatorFromAVSCmd() *cli.Command {
 func DeRegisterOperatorFromAVS(config *operator_config.OperatorConfig) {
 	client := wc_common.ConnectToUrl(config.EthRPCUrl)
 
-	operatorPrivateKey, operatorAddress := wc_common.GetECDSAPrivateAndPublicKey(wc_common.GetPrivateKey(config.OperatorPrivateKey))
+	operatorPrivateKey, operatorAddress := wc_common.GetECDSAPrivateAndPublicKey(wc_common.GetPrivateKey(config.OperatorPrivateKey, config.KeyType))
 	avsDirectory, err := AvsDirectory.NewAvsDirectory(config.AvsDirectoryAddress, client)
 	wc_common.CheckError(err, "Instantiating AvsDirectory contract failed")
 

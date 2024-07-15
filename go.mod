@@ -3,9 +3,10 @@ module github.com/witnesschain-com/operator-cli
 go 1.22.1
 
 require (
+	github.com/Layr-Labs/eigensdk-go v0.1.8
 	github.com/ethereum/go-ethereum v1.14.3
 	github.com/howeyc/gopass v0.0.0-20210920133722-c8aef6fb66ef
-	github.com/urfave/cli/v2 v2.25.7
+	github.com/urfave/cli/v2 v2.27.1
 	github.com/wagslane/go-password-validator v0.3.0
 )
 
@@ -23,7 +24,7 @@ require (
 	github.com/ethereum/c-kzg-4844 v1.0.0 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
-	github.com/google/uuid v1.3.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/holiman/uint256 v1.2.4 // indirect
 	github.com/mmcloughlin/addchain v0.4.0 // indirect
