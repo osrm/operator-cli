@@ -20,12 +20,10 @@ import (
 var m_useEncryptedKeys bool = false
 var m_isFullPath bool = false
 var m_retryMounting bool = false
-var m_encryptedDir string = GoCryptFSDirName + "/" + EncryptedDirName
-var m_decryptedDir string = GoCryptFSDirName + "/" + DecryptedDirName
-var m_goCryptFSConfig string = GoCryptFSDirName + "/" + GoCryptFSConfigName
-var m_goCryptFSDir string = GoCryptFSDirName
+var m_encryptedDir string = filepath.Join(GoCryptFSDirName, EncryptedDirName)
+var m_decryptedDir string = filepath.Join(GoCryptFSDirName, DecryptedDirName)
+var m_goCryptFSConfig string = filepath.Join(GoCryptFSDirName, GoCryptFSConfigName)
 var m_keystoreDir string = KeyStoreDirName
-var m_keystoreSuffix string = KeyStoreSuffixName
 
 func KeysCmd() *cli.Command {
 	var keysCmd = &cli.Command{
@@ -139,8 +137,8 @@ func InitKeyStore(cCtx *cli.Context) {
 	//Nested directory creation. Check full path
 	switch keyType {
 	case KeyTypeGoCryptFS:
-		if !DirectoryExists(m_goCryptFSDir) {
-			CreateDirectory(m_goCryptFSDir)
+		if !DirectoryExists(GoCryptFSDirName) {
+			CreateDirectory(GoCryptFSDirName)
 		}
 		if !DirectoryExists(m_encryptedDir) {
 			CreateDirectory(m_encryptedDir)
@@ -319,7 +317,7 @@ func ExportKeyCmd(cCtx *cli.Context) {
 }
 
 func DeleteKey(keyName string) {
-	keyFile := m_decryptedDir + "/" + keyName
+	keyFile := filepath.Join(m_decryptedDir, keyName)
 	err := os.Remove(keyFile)
 	CheckError(err, "Error deleting key\n")
 
@@ -332,7 +330,7 @@ func GetPrivateKeyFromUser() string {
 }
 
 func CreateGoCryptfsKey(keyName string) {
-	keyFile := m_decryptedDir + "/" + keyName
+	keyFile := filepath.Join(m_decryptedDir, keyName)
 
 	if !AllowKeyOverwrite(keyFile) {
 		return
@@ -355,8 +353,8 @@ func CreateKeyFileAndStoreKey(keyFile string, privateKey string) {
 }
 
 func CreateKeystoreKey(keyName string, insecure bool) {
-	keyFileName := keyName + m_keystoreSuffix
-	keyFile := m_keystoreDir + "/" + keyFileName
+	keyFileName := keyName + KeyStoreSuffixName
+	keyFile := filepath.Join(m_keystoreDir, keyFileName)
 
 	if !AllowKeyOverwrite(keyFile) {
 		return
@@ -371,7 +369,7 @@ func CreateKeystoreKey(keyName string, insecure bool) {
 }
 
 func ImportGoCryptfsKey(keyName string) {
-	keyFile := m_decryptedDir + "/" + keyName
+	keyFile := filepath.Join(m_decryptedDir, keyName)
 
 	if !AllowKeyOverwrite(keyFile) {
 		return
@@ -384,8 +382,8 @@ func ImportGoCryptfsKey(keyName string) {
 }
 
 func ImportKeystoreKey(keyName string, insecure bool) {
-	keyFileName := keyName + m_keystoreSuffix
-	keyFile := m_keystoreDir + "/" + keyFileName
+	keyFileName := keyName + KeyStoreSuffixName
+	keyFile := filepath.Join(m_keystoreDir, keyFileName)
 
 	if !AllowKeyOverwrite(keyFile) {
 		return
@@ -411,8 +409,8 @@ func ExportGoCryptfsKey(keyName string) {
 }
 
 func ExportKeystoreKey(keyName string) {
-	keyFileName := keyName + m_keystoreSuffix
-	keyFile := m_keystoreDir + "/" + keyFileName
+	keyFileName := keyName + KeyStoreSuffixName
+	keyFile := filepath.Join(m_keystoreDir, keyFileName)
 
 	password := GetPasswordFromPrompt(true, "export")
 
@@ -426,14 +424,14 @@ func ExportKeystoreKey(keyName string) {
 }
 
 func DeleteGoCryptfsKey(keyName string) {
-	keyFile := m_decryptedDir + "/" + keyName
+	keyFile := filepath.Join(m_decryptedDir, keyName)
 	err := os.Remove(keyFile)
 	CheckError(err, "Error deleting key\n")
 }
 
 func DeleteKeystoreKey(keyName string) {
-	keyFileName := keyName + m_keystoreSuffix
-	keyFile := m_keystoreDir + "/" + keyFileName
+	keyFileName := keyName + KeyStoreSuffixName
+	keyFile := filepath.Join(m_keystoreDir, keyFileName)
 	err := os.Remove(keyFile)
 	CheckError(err, "Error deleting key\n")
 }
@@ -445,14 +443,14 @@ func ValidEncryptedDir() bool {
 }
 
 func GetPrivateKeyFromFile(keyName string) string {
-	keyFile := m_decryptedDir + "/" + keyName
+	keyFile := filepath.Join(m_decryptedDir, keyName)
 	data, err := os.ReadFile(keyFile)
 	CheckError(err, "Error reading key file")
 	return string(data)
 }
 
 func GetKeystorePrivateKey(keyName string) string {
-	keyFileName := keyName + m_keystoreSuffix
+	keyFileName := keyName + KeyStoreSuffixName
 	keyFile := filepath.Join(m_keystoreDir, keyFileName)
 
 	password := GetPasswordFromPrompt(true, "export "+keyFileName)
