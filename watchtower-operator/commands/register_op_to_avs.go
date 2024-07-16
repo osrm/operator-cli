@@ -1,8 +1,11 @@
 package operator_commands
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/witnesschain-com/diligencewatchtower-client/keystore"
 	wc_common "github.com/witnesschain-com/operator-cli/common"
 	"github.com/witnesschain-com/operator-cli/common/bindings/AvsDirectory"
 	"github.com/witnesschain-com/operator-cli/common/bindings/OperatorRegistry"
@@ -32,38 +35,45 @@ func RegisterOperatorToAVSCmd() *cli.Command {
 func RegisterOperatorToAVS(config *operator_config.OperatorConfig) {
 	client := wc_common.ConnectToUrl(config.EthRPCUrl)
 
-	operatorRegistry, err := OperatorRegistry.NewOperatorRegistry(config.OperatorRegistryAddress, client)
+	chainID, err := client.ChainID(context.Background())
+	wc_common.CheckError(err, "unable to retrive chainID form: " + config.EthRPCUrl)
+
+	if wc_common.NetworkConfig[chainID.String()].WitnessHubAddress.Cmp(common.Address{0}) == 0  {
+		fmt.Printf("Contract %v not found at %v\n. Please verify that witnesschain contract are deployed for this chain", wc_common.NetworkConfig[chainID.String()].WitnessHubAddress, config.EthRPCUrl)
+	}
+
+	operatorRegistry, err := OperatorRegistry.NewOperatorRegistry(wc_common.NetworkConfig[config.ChainID.String()].OperatorRegistryAddress, client)
 	wc_common.CheckError(err, "Instantiating OperatorRegistry contract failed")
 
-	operatorPrivateKey, operatorAddress := wc_common.GetECDSAPrivateAndPublicKey(wc_common.GetPrivateKey(config.OperatorPrivateKey))
-	wc_common.CheckError(err, "Converting private key to ECDSA format failed")
 
-	if !wc_common.IsOperatorWhitelisted(operatorAddress, operatorRegistry) {
-		fmt.Printf("Operator %s is not whitelisted\n", operatorAddress.Hex())
+	if !wc_common.IsOperatorWhitelisted(config.OperatorAddress, operatorRegistry) {
+		fmt.Printf("Operator %s is not whitelisted\n", config.OperatorAddress.Hex())
 		return
 	}
 
-	avsDirectory, err := AvsDirectory.NewAvsDirectory(config.AvsDirectoryAddress, client)
+	avsDirectory, err := AvsDirectory.NewAvsDirectory(wc_common.NetworkConfig[config.ChainID.String()].AVSDirectoryAddress, client)
 	wc_common.CheckError(err, "Instantiating AvsDirectory contract failed")
 
-	if wc_common.IsOperatorRegistered(config.WitnessHubAddress, operatorAddress, avsDirectory) {
-		fmt.Printf("Operator %s is already registered\n", operatorAddress.Hex())
+	if wc_common.IsOperatorRegistered(wc_common.NetworkConfig[config.ChainID.String()].WitnessHubAddress, config.OperatorAddress, avsDirectory) {
+		fmt.Printf("Operator %s is already registered\n", config.OperatorAddress.Hex())
 		return
 	}
 
-	witnessHub, err := WitnessHub.NewWitnessHub(config.WitnessHubAddress, client)
+	witnessHub, err := WitnessHub.NewWitnessHub(wc_common.NetworkConfig[config.ChainID.String()].WitnessHubAddress, client)
 	wc_common.CheckError(err, "Instantiating WitnessHub contract failed")
 
 	expiry := wc_common.CalculateExpiry(client, config.ExpiryInDays)
-	operatorSignature := GetOpertorSignature(client, avsDirectory, config.WitnessHubAddress, operatorPrivateKey, operatorAddress, expiry)
+	vc := &keystore.VaultConfig{Address: config.OperatorAddress, PrivateKey: config.OperatorPrivateKey, GocryptfsKey: config.OperatorEncryptedKey, Endpoint: config.Endpoint, ChainID: chainID}
+	operatorVault, err := keystore.SetupVault(vc)
+	wc_common.CheckError(err, "unable to setup operator Vault: " + vc.Address.Hex())
+	operatorSignature := GetOpertorSignature(client, avsDirectory, wc_common.NetworkConfig[config.ChainID.String()].WitnessHubAddress, operatorVault, config.OperatorAddress, expiry)
 
-	avsRegtransactOpts := wc_common.PrepareTransactionOptions(client, config.ChainId, config.GasLimit, operatorPrivateKey)
-	avsRegtransactOpts.Nonce = wc_common.GetLatestNonce(client, operatorPrivateKey)
+	transactOpts := operatorVault.NewTransactOpts(config.ChainID)
 
-	tx, err := witnessHub.RegisterOperatorToAVS(avsRegtransactOpts, operatorAddress, operatorSignature)
+	tx, err := witnessHub.RegisterOperatorToAVS(transactOpts, config.OperatorAddress, operatorSignature)
 	wc_common.CheckError(err, "Registering operator to AVS failed")
 
-	fmt.Printf("Tx sent: %s\n", tx.Hash().Hex())
+	fmt.Printf("Tx sent: %s/tx/%s\n", wc_common.NetworkConfig[chainID.String()].BlockExplorer, tx.Hash().Hex())
 
 	wc_common.WaitForTransactionReceipt(client, tx, config.TxReceiptTimeout)
 }

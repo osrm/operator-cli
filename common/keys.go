@@ -1,6 +1,7 @@
 package wc_common
 
 import (
+	"crypto/ecdsa"
 	"fmt"
 	"os"
 	"os/exec"
@@ -8,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/urfave/cli/v2"
 )
 
@@ -215,11 +217,14 @@ func ValidEncryptedDir() bool {
 func GetPrivateKeyFromFile(keyName string) string {
 	keyFile := m_decryptedDir + "/" + keyName
 	data, err := os.ReadFile(keyFile)
-	CheckError(err, "Error reading key file")
+	CheckError(err, "Error reading key file" + keyFile)
 	return string(data)
 }
 
 func UseEncryptedKeys() {
+	if m_useEncryptedKeys == true {
+		return
+	}
 	m_useEncryptedKeys = true
 	ValidateAndMount()
 }
@@ -258,4 +263,24 @@ func GetPrivateKey(key string) string {
 		return GetPrivateKeyFromFile(keyName)
 	}
 	return key
+}
+
+func LoadPrivateKey(path string) (*ecdsa.PrivateKey, error) {
+	ProcessConfigKeyPath(path)
+
+	fmt.Println("loading " + path)
+	dir := filepath.Dir(path)
+	KeyfileName := filepath.Base(path)
+	m_encryptedDir = dir
+
+	Mount()
+	data, err := os.ReadFile(m_decryptedDir + "/" + KeyfileName)
+	CheckError(err, "Error reading key file" + path)
+	Unmount()
+
+	priv, err := crypto.HexToECDSA(string(data))
+	if err != nil {
+		return nil, err
+	}
+	return priv, nil
 }
