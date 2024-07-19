@@ -1,8 +1,11 @@
 package operator_commands
 
 import (
+	"crypto/ecdsa"
 	"fmt"
 
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/witnesschain-com/diligencewatchtower-client/keystore"
 	wc_common "github.com/witnesschain-com/operator-cli/common"
 	"github.com/witnesschain-com/operator-cli/common/bindings/OperatorRegistry"
 	operator_config "github.com/witnesschain-com/operator-cli/watchtower-operator/config"
@@ -28,24 +31,38 @@ func RegisterWatchtowerCmd() *cli.Command {
 }
 
 func RegisterWatchtower(config *operator_config.OperatorConfig) {
-	client := wc_common.ConnectToUrl(config.EthRPCUrl)
+	var client *ethclient.Client
+	client, config.ChainID = wc_common.ConnectToUrl(config.EthRPCUrl)
 
-	operatorRegistry, err := OperatorRegistry.NewOperatorRegistry(config.OperatorRegistryAddress, client)
+	operatorRegistry, err := OperatorRegistry.NewOperatorRegistry(wc_common.NetworkConfig[config.ChainID.String()].OperatorRegistryAddress, client)
 	wc_common.CheckError(err, "Instantiating OperatorRegistry contract failed")
 
-	operatorPrivateKey, operatorAddress := wc_common.GetECDSAPrivateAndPublicKey(wc_common.GetPrivateKey(config.OperatorPrivateKey, config.KeyType))
+	vc := &keystore.VaultConfig{Address: config.OperatorAddress, ChainID: config.ChainID, PrivateKey: config.OperatorPrivateKey, Endpoint: config.Endpoint}
+	operatorVault, err := keystore.SetupVault(vc)
+	if err != nil {
+		wc_common.CheckError(err, "unable to setup vault")
+	}
 
-	if !wc_common.IsOperatorWhitelisted(operatorAddress, operatorRegistry) {
-		fmt.Printf("Operator %s is not whitelisted\n", operatorAddress.Hex())
+	if !wc_common.IsOperatorWhitelisted(config.OperatorAddress, operatorRegistry) {
+		fmt.Printf("Operator %s is not whitelisted\n", config.OperatorAddress.Hex())
 		return
 	}
 
-	regTransactOpts := wc_common.PrepareTransactionOptions(client, config.ChainId, config.GasLimit, operatorPrivateKey)
+	transactOpts := operatorVault.NewTransactOpts(config.ChainID)
+
 	expiry := wc_common.CalculateExpiry(client, config.ExpiryInDays)
 
-	for _, watchTowerPkName := range config.WatchtowerPrivateKeys {
+	for i, watchtowerAddress := range config.WatchtowerAddresses {
+		fmt.Println("watchtowerAddress: " + watchtowerAddress.Hex())
 
-		watchtowerPrivateKey, watchtowerAddress := wc_common.GetECDSAPrivateAndPublicKey(wc_common.GetPrivateKey(watchTowerPkName, config.KeyType))
+		var watchtowerPrivateKey *ecdsa.PrivateKey
+		if len(config.WatchtowerPrivateKeys) != 0 {
+			watchtowerPrivateKey = config.WatchtowerPrivateKeys[i]
+		}
+
+		vc := &keystore.VaultConfig{Address: watchtowerAddress, ChainID: config.ChainID, PrivateKey: watchtowerPrivateKey, Endpoint: config.Endpoint}
+		watchtowerVault, err := keystore.SetupVault(vc)
+		wc_common.CheckError(err, "unable to setup watchtower vault")
 
 		if wc_common.IsWatchtowerRegistered(watchtowerAddress, operatorRegistry) {
 			fmt.Printf("Watchtower %s is already registered\n", watchtowerAddress.Hex())
@@ -53,12 +70,10 @@ func RegisterWatchtower(config *operator_config.OperatorConfig) {
 		}
 
 		salt := wc_common.GenerateSalt()
-		signedMessage := SignOperatorAddress(client, operatorRegistry, watchtowerPrivateKey, operatorAddress, salt, expiry)
-		regTransactOpts.Nonce = wc_common.GetLatestNonce(client, operatorPrivateKey)
-
-		regTx, err := operatorRegistry.RegisterWatchtowerAsOperator(regTransactOpts, watchtowerAddress, salt, expiry, signedMessage)
+		signedMessage := SignOperatorAddress(client, operatorRegistry, watchtowerVault, config.OperatorAddress, salt, expiry)
+		regTx, err := operatorRegistry.RegisterWatchtowerAsOperator(transactOpts, watchtowerAddress, salt, expiry, signedMessage)
 		wc_common.CheckError(err, "Registering watchtower as operator failed")
-		fmt.Printf("Tx sent: %s\n", regTx.Hash().Hex())
+		fmt.Printf("Tx sent: %s/tx/%s\n", wc_common.NetworkConfig[config.ChainID.String()].BlockExplorer, regTx.Hash().Hex())
 		wc_common.WaitForTransactionReceipt(client, regTx, config.TxReceiptTimeout)
 	}
 }

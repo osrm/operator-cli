@@ -20,10 +20,12 @@ import (
 var m_useEncryptedKeys bool = false
 var m_isFullPath bool = false
 var m_retryMounting bool = false
-var m_encryptedDir string = filepath.Join(GoCryptFSDirName, EncryptedDirName)
-var m_decryptedDir string = filepath.Join(GoCryptFSDirName, DecryptedDirName)
+
+var m_gocryptfsEncDir string = filepath.Join(GoCryptFSDirName, GocryptfsEncDirName)
+var m_gocryptfsDecDir string = filepath.Join(GoCryptFSDirName, GocryptfsDecDirName)
 var m_goCryptFSConfig string = filepath.Join(GoCryptFSDirName, GoCryptFSConfigName)
-var m_keystoreDir string = KeyStoreDirName
+var m_w3SecretKeyDir string = W3SecretKeyDirName
+var m_w3SecretKeysPassword string = ""
 
 func KeysCmd() *cli.Command {
 	var keysCmd = &cli.Command{
@@ -140,23 +142,21 @@ func InitKeyStore(cCtx *cli.Context) {
 		if !DirectoryExists(GoCryptFSDirName) {
 			CreateDirectory(GoCryptFSDirName)
 		}
-		if !DirectoryExists(m_encryptedDir) {
-			CreateDirectory(m_encryptedDir)
+		if !DirectoryExists(m_gocryptfsEncDir) {
+			CreateDirectory(m_gocryptfsEncDir)
 		}
 
-		if !DirectoryExists(m_decryptedDir) {
-			CreateDirectory(m_decryptedDir)
+		if !DirectoryExists(m_gocryptfsDecDir) {
+			CreateDirectory(m_gocryptfsDecDir)
 		}
 		InitGocryptfs(insecure)
-	case KeyTypeKeystore:
-		if !DirectoryExists(m_keystoreDir) {
-			CreateDirectory(m_keystoreDir)
+	case KeyTypeW3SecretKey:
+		if !DirectoryExists(m_w3SecretKeyDir) {
+			CreateDirectory(m_w3SecretKeyDir)
 		}
 		fmt.Println("Init keystore done")
 	default:
-		var err error
-		err = errors.New("invalid key type")
-		CheckError(err, "error initializing key store")
+		CheckError(ErrInvalidKeyType, "error initializing key store")
 	}
 }
 
@@ -172,12 +172,10 @@ func CreateKeyCmd(cCtx *cli.Context) {
 	case KeyTypeGoCryptFS:
 		ValidateAndMount()
 		CreateGoCryptfsKey(keyName)
-	case KeyTypeKeystore:
-		CreateKeystoreKey(keyName, insecure)
+	case KeyTypeW3SecretKey:
+		CreateW3SecretKey(keyName, insecure)
 	default:
-		var err error
-		err = errors.New("invalid key type")
-		CheckError(err, "error creating key")
+		CheckError(ErrInvalidKeyType, "error creating key")
 	}
 }
 
@@ -193,12 +191,10 @@ func ImportKeyCmd(cCtx *cli.Context) {
 	case KeyTypeGoCryptFS:
 		ValidateAndMount()
 		ImportGoCryptfsKey(keyName)
-	case KeyTypeKeystore:
-		ImportKeystoreKey(keyName, insecure)
+	case KeyTypeW3SecretKey:
+		ImportW3SecretKey(keyName, insecure)
 	default:
-		var err error
-		err = errors.New("invalid key type")
-		CheckError(err, "error importing key")
+		CheckError(ErrInvalidKeyType, "error importing key")
 	}
 }
 
@@ -231,12 +227,10 @@ func DeleteKeyCmd(cCtx *cli.Context) {
 	case KeyTypeGoCryptFS:
 		ValidateAndMount()
 		DeleteGoCryptfsKey(keyName)
-	case KeyTypeKeystore:
-		DeleteKeystoreKey(keyName)
+	case KeyTypeW3SecretKey:
+		DeleteW3SecretKey(keyName)
 	default:
-		var err error
-		err = errors.New("invalid key type")
-		CheckError(err, "error deleting key")
+		CheckError(ErrInvalidKeyType, "error deleting key")
 	}
 
 	fmt.Printf("Deleted key: %s\n", keyName)
@@ -245,18 +239,17 @@ func DeleteKeyCmd(cCtx *cli.Context) {
 func ListKeyCmd(cCtx *cli.Context) {
 	keyType := cCtx.String("key-type")
 
-	var err error
+	var err error = nil
 	var dir *os.File
 
 	switch keyType {
 	case KeyTypeGoCryptFS:
 		ValidateAndMount()
-		dir, err = os.Open(m_decryptedDir)
-	case KeyTypeKeystore:
-		dir, err = os.Open(m_keystoreDir)
+		dir, err = os.Open(m_gocryptfsDecDir)
+	case KeyTypeW3SecretKey:
+		dir, err = os.Open(m_w3SecretKeyDir)
 	default:
-		err = errors.New("invalid key type")
-		CheckError(err, "error listing keys")
+		CheckErrorWithoutUnmount(ErrInvalidKeyType, "error listing keys")
 	}
 
 	CheckError(err, "Error opening directory")
@@ -278,7 +271,7 @@ func ListKeyCmd(cCtx *cli.Context) {
 }
 
 func InitGocryptfs(insecure bool) {
-	initCmd := exec.Command("gocryptfs", "-init", "-plaintextnames", m_encryptedDir)
+	initCmd := exec.Command("gocryptfs", "-init", "-plaintextnames", m_gocryptfsEncDir)
 
 	RunCommandWithPassword(initCmd, "init", insecure)
 }
@@ -305,8 +298,8 @@ func ExportKeyCmd(cCtx *cli.Context) {
 	case KeyTypeGoCryptFS:
 		ValidateAndMount()
 		ExportGoCryptfsKey(keyName)
-	case KeyTypeKeystore:
-		ExportKeystoreKey(keyName)
+	case KeyTypeW3SecretKey:
+		ExportW3SecretKey(keyName)
 	default:
 		var err error
 		err = errors.New("invalid key type")
@@ -317,7 +310,7 @@ func ExportKeyCmd(cCtx *cli.Context) {
 }
 
 func DeleteKey(keyName string) {
-	keyFile := filepath.Join(m_decryptedDir, keyName)
+	keyFile := filepath.Join(m_gocryptfsDecDir, keyName)
 	err := os.Remove(keyFile)
 	CheckError(err, "Error deleting key\n")
 
@@ -330,7 +323,7 @@ func GetPrivateKeyFromUser() string {
 }
 
 func CreateGoCryptfsKey(keyName string) {
-	keyFile := filepath.Join(m_decryptedDir, keyName)
+	keyFile := filepath.Join(m_gocryptfsDecDir, keyName)
 
 	if !AllowKeyOverwrite(keyFile) {
 		return
@@ -352,9 +345,9 @@ func CreateKeyFileAndStoreKey(keyFile string, privateKey string) {
 	CheckError(err, "Error writing to file")
 }
 
-func CreateKeystoreKey(keyName string, insecure bool) {
-	keyFileName := keyName + KeyStoreSuffixName
-	keyFile := filepath.Join(m_keystoreDir, keyFileName)
+func CreateW3SecretKey(keyName string, insecure bool) {
+	keyFileName := keyName + W3SecretKeySuffixName
+	keyFile := filepath.Join(m_w3SecretKeyDir, keyFileName)
 
 	if !AllowKeyOverwrite(keyFile) {
 		return
@@ -369,7 +362,7 @@ func CreateKeystoreKey(keyName string, insecure bool) {
 }
 
 func ImportGoCryptfsKey(keyName string) {
-	keyFile := filepath.Join(m_decryptedDir, keyName)
+	keyFile := filepath.Join(m_gocryptfsDecDir, keyName)
 
 	if !AllowKeyOverwrite(keyFile) {
 		return
@@ -381,9 +374,9 @@ func ImportGoCryptfsKey(keyName string) {
 	fmt.Printf("Imported key: %s\n", keyName)
 }
 
-func ImportKeystoreKey(keyName string, insecure bool) {
-	keyFileName := keyName + KeyStoreSuffixName
-	keyFile := filepath.Join(m_keystoreDir, keyFileName)
+func ImportW3SecretKey(keyName string, insecure bool) {
+	keyFileName := keyName + W3SecretKeySuffixName
+	keyFile := filepath.Join(m_w3SecretKeyDir, keyFileName)
 
 	if !AllowKeyOverwrite(keyFile) {
 		return
@@ -401,16 +394,16 @@ func ImportKeystoreKey(keyName string, insecure bool) {
 }
 
 func ExportGoCryptfsKey(keyName string) {
-	privateKey := GetPrivateKeyFromFile(keyName)
+	privateKey := GetGocryptfsPrivateKey(keyName)
 	_, publicKey := GetECDSAPrivateAndPublicKey(privateKey)
 
 	fmt.Println("Public key : ", publicKey)
 	fmt.Println("Private key : ", privateKey)
 }
 
-func ExportKeystoreKey(keyName string) {
-	keyFileName := keyName + KeyStoreSuffixName
-	keyFile := filepath.Join(m_keystoreDir, keyFileName)
+func ExportW3SecretKey(keyName string) {
+	keyFileName := keyName + W3SecretKeySuffixName
+	keyFile := filepath.Join(m_w3SecretKeyDir, keyFileName)
 
 	password := GetPasswordFromPrompt(true, "export")
 
@@ -424,14 +417,14 @@ func ExportKeystoreKey(keyName string) {
 }
 
 func DeleteGoCryptfsKey(keyName string) {
-	keyFile := filepath.Join(m_decryptedDir, keyName)
+	keyFile := filepath.Join(m_gocryptfsDecDir, keyName)
 	err := os.Remove(keyFile)
 	CheckError(err, "Error deleting key\n")
 }
 
-func DeleteKeystoreKey(keyName string) {
-	keyFileName := keyName + KeyStoreSuffixName
-	keyFile := filepath.Join(m_keystoreDir, keyFileName)
+func DeleteW3SecretKey(keyName string) {
+	keyFileName := keyName + W3SecretKeySuffixName
+	keyFile := filepath.Join(m_w3SecretKeyDir, keyFileName)
 	err := os.Remove(keyFile)
 	CheckError(err, "Error deleting key\n")
 }
@@ -442,20 +435,22 @@ func ValidEncryptedDir() bool {
 	return !os.IsNotExist(err)
 }
 
-func GetPrivateKeyFromFile(keyName string) string {
-	keyFile := filepath.Join(m_decryptedDir, keyName)
+func GetGocryptfsPrivateKey(keyName string) string {
+	keyFile := filepath.Join(m_gocryptfsDecDir, keyName)
 	data, err := os.ReadFile(keyFile)
-	CheckError(err, "Error reading key file")
+	CheckError(err, "Error reading key file "+keyFile)
 	return string(data)
 }
 
-func GetKeystorePrivateKey(keyName string) string {
-	keyFileName := keyName + KeyStoreSuffixName
-	keyFile := filepath.Join(m_keystoreDir, keyFileName)
+func GetW3SecretStoragePrivateKey(keyName string) string {
+	keyFileName := keyName + W3SecretKeySuffixName
+	keyFile := filepath.Join(m_w3SecretKeyDir, keyFileName)
 
-	password := GetPasswordFromPrompt(true, "export "+keyFileName)
+	if m_w3SecretKeysPassword == "" {
+		m_w3SecretKeysPassword = GetPasswordFromPrompt(true, "export web3 secret storage keys")
+	}
 
-	key, err := sdkEcdsa.ReadKey(keyFile, password)
+	key, err := sdkEcdsa.ReadKey(keyFile, m_w3SecretKeysPassword)
 	CheckError(err, "Error reading ecdsa key")
 
 	privateKey := hex.EncodeToString(key.D.Bytes())
@@ -464,50 +459,40 @@ func GetKeystorePrivateKey(keyName string) string {
 }
 
 func UseEncryptedKeys(keyType string) {
+	if m_useEncryptedKeys {
+		return
+	}
+
 	m_useEncryptedKeys = true
 	if keyType == KeyTypeGoCryptFS {
-		ValidateAndMount() //This can be moved into ProcessConfigKeyPath but user needs to make sure proper keytype is giving for a given custom path
+		ValidateAndMount()
 	}
 }
 
 func ProcessConfigKeyPath(keyPath string, keyType string) {
 	dir, file := filepath.Split(keyPath)
 
-	var defaultPath string
-
 	switch keyType {
 	case KeyTypeGoCryptFS:
-		defaultPath = m_encryptedDir
-	case KeyTypeKeystore:
-		defaultPath = m_keystoreDir
+		if file != keyPath {
+			// go to the grand parent directory of the key path to get the .encrypted_keys path
+			parentPathGoCryptFS := filepath.Dir(filepath.Dir(dir))
+			m_gocryptfsEncDir = filepath.Join(parentPathGoCryptFS, GocryptfsEncDirName)
+			m_gocryptfsDecDir = filepath.Join(parentPathGoCryptFS, GocryptfsDecDirName)
+			m_goCryptFSConfig = filepath.Join(parentPathGoCryptFS, GoCryptFSConfigName)
+			m_isFullPath = true
+		}
+		fmt.Printf("Using the key path : %s\n", m_gocryptfsEncDir)
+
+	case KeyTypeW3SecretKey:
+		if file != keyPath {
+			m_w3SecretKeyDir = dir
+			m_isFullPath = true
+		}
+		fmt.Printf("Using the key path : %s\n", m_w3SecretKeyDir)
+
 	default:
-		var err error
-		err = errors.New("invalid key type")
-		CheckError(err, "error processing key path")
-	}
-
-	if file == keyPath {
-		fmt.Printf("Using the default key path : %s\n", defaultPath)
-		// this means they have given only the key name only,
-		// do nothing and use default path
-		return
-	}
-
-	// go to the grand parent directory of the key path to get the .encrypted_keys path
-	parentPathGoCryptFS := filepath.Dir(filepath.Dir(dir))
-
-	m_encryptedDir = filepath.Join(parentPathGoCryptFS, EncryptedDirName)
-	m_decryptedDir = filepath.Join(parentPathGoCryptFS, DecryptedDirName)
-	m_goCryptFSConfig = filepath.Join(parentPathGoCryptFS, GoCryptFSConfigName)
-
-	m_keystoreDir = dir
-
-	m_isFullPath = true
-
-	if keyType == KeyTypeGoCryptFS {
-		fmt.Printf("Using the key path : %s\n", m_encryptedDir)
-	} else {
-		fmt.Printf("Using the key path : %s\n", m_keystoreDir)
+		CheckError(ErrInvalidKeyType, "Error processing key path")
 	}
 
 }
@@ -523,10 +508,13 @@ func GetPrivateKey(key string, keyType string) string {
 			_, keyName = filepath.Split(key)
 		}
 
-		if keyType == "gocryptfs" {
-			return GetPrivateKeyFromFile(keyName)
-		} else {
-			return GetKeystorePrivateKey(keyName)
+		switch keyType {
+		case KeyTypeGoCryptFS:
+			return GetGocryptfsPrivateKey(keyName)
+		case KeyTypeW3SecretKey:
+			return GetW3SecretStoragePrivateKey(keyName)
+		default:
+			CheckError(ErrInvalidKeyType, "Error processing key path")
 		}
 	}
 	return key
@@ -537,4 +525,12 @@ func GenerateRandomKey() *ecdsa.PrivateKey {
 	CheckError(err, "Error generating key")
 
 	return privateKey
+}
+
+func LoadPrivateKey(path string, keyType string) (*ecdsa.PrivateKey, error) {
+	priv, err := crypto.HexToECDSA(GetPrivateKey(path, keyType))
+	if err != nil {
+		return nil, err
+	}
+	return priv, nil
 }

@@ -1,30 +1,36 @@
 package operator_config
 
 import (
+	"crypto/ecdsa"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/big"
 	"os"
 
-	wc_common "github.com/witnesschain-com/operator-cli/common"
-
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/urfave/cli/v2"
+
+	wc_common "github.com/witnesschain-com/operator-cli/common"
 )
 
 type OperatorConfig struct {
-	WatchtowerPrivateKeys   []string       `json:"watchtower_private_keys"`
-	OperatorPrivateKey      string         `json:"operator_private_key"`
-	OperatorRegistryAddress common.Address `json:"operator_registry_address"`
-	WitnessHubAddress       common.Address `json:"witnesshub_address"`
-	AvsDirectoryAddress     common.Address `json:"avs_directory_address"`
-	EthRPCUrl               string         `json:"eth_rpc_url"`
-	ChainId                 big.Int        `json:"chain_id"`
-	GasLimit                uint64         `json:"gas_limit"`
-	TxReceiptTimeout        int64          `json:"tx_receipt_timeout"`
-	ExpiryInDays            int64          `json:"expiry_in_days"`
-	UseEncryptedKeys        bool           `json:"use_encrypted_keys"`
-	KeyType                 string         `json:"key_type"`
+	WatchtowerPrivateKeysHex []string         `json:"watchtower_private_keys"`
+	WatchtowerAddresses      []common.Address `json:"watchtower_addresses"`
+	WatchtowerEncryptedKeys  []string         `json:"watchtower_encrypted_keys"`
+	OperatorPrivateKeyHex    string           `json:"operator_private_key"`
+	OperatorAddress          common.Address   `json:"operator_address"`
+	OperatorEncryptedKey     string           `json:"operator_encrypted_key"`
+	EthRPCUrl                string           `json:"eth_rpc_url"`
+	GasLimit                 uint64           `json:"gas_limit"`
+	TxReceiptTimeout         int64            `json:"tx_receipt_timeout"`
+	ExpiryInDays             int64            `json:"expiry_in_days"`
+	Endpoint                 string           `json:"external_signer_endpoint"`
+	KeyType                  string           `json:"encrypted_key_type"`
+	WatchtowerPrivateKeys    []*ecdsa.PrivateKey
+	OperatorPrivateKey       *ecdsa.PrivateKey
+	ChainID                  *big.Int
 }
 
 func GetConfigFromContext(cCtx *cli.Context) *OperatorConfig {
@@ -35,33 +41,57 @@ func GetConfigFromContext(cCtx *cli.Context) *OperatorConfig {
 	wc_common.CheckError(err, "Error reading json file")
 
 	// Parse the json data into a struct
-	var config OperatorConfig
+	var config OperatorConfig = OperatorConfig{ExpiryInDays: 1, TxReceiptTimeout: 300, GasLimit: 300000}
 	err = json.Unmarshal(data, &config)
 	wc_common.CheckError(err, "Error unmarshaling json data")
 
-	SetDefaultConfigValues(&config)
-
-	if config.UseEncryptedKeys {
+	if len(config.WatchtowerEncryptedKeys) != 0 {
 		// get the path from the first key, as others should be same
 		// will not work with different paths
 		wc_common.RetryMounting()
-		wc_common.ProcessConfigKeyPath(config.WatchtowerPrivateKeys[0], config.KeyType)
+		wc_common.ProcessConfigKeyPath(config.WatchtowerEncryptedKeys[0], config.KeyType)
 		wc_common.UseEncryptedKeys(config.KeyType)
 	}
 
+	if len(config.WatchtowerPrivateKeysHex) != 0 {
+		for _, privKey := range config.WatchtowerPrivateKeysHex {
+			fmt.Println(privKey)
+			key, err := crypto.HexToECDSA(privKey)
+			wc_common.CheckError(err, "unable to convert watchtower privatekey")
+			config.WatchtowerAddresses = append(config.WatchtowerAddresses, crypto.PubkeyToAddress(key.PublicKey))
+			config.WatchtowerPrivateKeys = append(config.WatchtowerPrivateKeys, key)
+		}
+	}
+
+	if len(config.WatchtowerEncryptedKeys) != 0 {
+		for _, keyPath := range config.WatchtowerEncryptedKeys {
+			privKey, err := wc_common.LoadPrivateKey(keyPath, config.KeyType)
+			wc_common.CheckError(err, "unable to load encrypted keys")
+
+			config.WatchtowerPrivateKeys = append(config.WatchtowerPrivateKeys, privKey)
+			config.WatchtowerAddresses = append(config.WatchtowerAddresses, crypto.PubkeyToAddress(privKey.PublicKey))
+		}
+	}
+
+	if len(config.OperatorEncryptedKey) != 0 {
+		priv, err := wc_common.LoadPrivateKey(config.OperatorEncryptedKey, config.KeyType)
+		if err != nil {
+			log.Fatal("unable to retive operator privateKey")
+		}
+		config.OperatorAddress = crypto.PubkeyToAddress(priv.PublicKey)
+		config.OperatorPrivateKey = priv
+	}
+
+	if len(config.OperatorPrivateKeyHex) != 0 {
+		priv, err := crypto.HexToECDSA(config.OperatorPrivateKeyHex)
+		wc_common.CheckError(err, "unable to convert privateKey")
+		config.OperatorAddress = crypto.PubkeyToAddress(priv.PublicKey)
+		config.OperatorPrivateKey = priv
+	}
+
+	if config.OperatorAddress.Cmp(common.Address{0}) == 0 {
+		panic("operatorAddress is zero")
+	}
+
 	return &config
-}
-
-func SetDefaultConfigValues(config *OperatorConfig) {
-	if config.ExpiryInDays == 0 {
-		config.ExpiryInDays = 1 // 1 day
-	}
-
-	if config.TxReceiptTimeout == 0 {
-		config.TxReceiptTimeout = 5 * 60 // 5 minutes
-	}
-
-	if config.GasLimit == 0 {
-		config.GasLimit = 300000
-	}
 }

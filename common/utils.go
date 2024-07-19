@@ -32,14 +32,18 @@ type MountResult struct {
 	Filesystems []Filesystem `json:"filesystems"`
 }
 
-func ConnectToUrl(url string) *ethclient.Client {
+var password string
+
+func ConnectToUrl(url string) (*ethclient.Client, *big.Int) {
 	client, err := ethclient.Dial(url)
 	CheckError(err, "Connection to RPC failed")
 
-	id, _ := client.ChainID(context.Background())
+	id, err := client.ChainID(context.Background())
+	CheckError(err, "Unable to retrive chainID for : "+url)
+
 	fmt.Println("Connection successful : ", id)
 
-	return client
+	return client, id
 }
 
 func GetECDSAPrivateKey(privateKeyString string) *ecdsa.PrivateKey {
@@ -106,7 +110,7 @@ func ValidateAndMount() {
 
 	if IsAlreadyMounted() {
 		if !m_retryMounting {
-			FatalErrorWithoutUnmount(m_decryptedDir + " already mounted")
+			FatalErrorWithoutUnmount(m_gocryptfsDecDir + " already mounted")
 		}
 
 		fmt.Println("GoCryptFS filesystem already mounted")
@@ -120,7 +124,7 @@ func ValidateAndMount() {
 				return
 			}
 		}
-		FatalErrorWithoutUnmount("Giving up, " + m_decryptedDir + " already mounted")
+		FatalErrorWithoutUnmount("Giving up, " + m_gocryptfsDecDir + " already mounted")
 	} else {
 		Mount()
 	}
@@ -131,7 +135,7 @@ func Mount() {
 		return
 	}
 
-	mountCmd := exec.Command("gocryptfs", m_encryptedDir, m_decryptedDir)
+	mountCmd := exec.Command("gocryptfs", m_gocryptfsEncDir, m_gocryptfsDecDir)
 	RunCommandWithPassword(mountCmd, "mount", true)
 
 	m_isMounted = true
@@ -142,7 +146,7 @@ func Unmount() {
 		return
 	}
 
-	umountCmd := exec.Command("fusermount", "-u", m_decryptedDir)
+	umountCmd := exec.Command("fusermount", "-u", m_gocryptfsDecDir)
 	err := umountCmd.Run()
 	if err != nil {
 		CheckErrorWithoutUnmount(err, "Error unmounting GoCryptFS filesystem")
@@ -162,7 +166,7 @@ func IsAlreadyMounted() bool {
 	CheckError(err, "Error checking if filesystem is mounted. Output - "+string(output))
 
 	for _, fs := range mountResult.Filesystems {
-		absolutePath, err := filepath.Abs(m_decryptedDir)
+		absolutePath, err := filepath.Abs(m_gocryptfsDecDir)
 		CheckError(err, "Error getting absolute path")
 
 		if absolutePath == fs.Target {
@@ -196,7 +200,9 @@ func CreateDirectory(path string) {
 
 func RunCommandWithPassword(cmd *exec.Cmd, desc string, insecure bool) {
 	fmt.Printf("Enter password to %s: ", desc)
-	password := ReadHiddenInput()
+	if len(password) == 0 {
+		password = ReadHiddenInput()
+	}
 
 	if !insecure {
 		ValidatePassword(password)
