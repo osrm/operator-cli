@@ -53,7 +53,6 @@ func InitCmd() *cli.Command {
 			&KeyStoreType,
 		},
 		Action: func(cCtx *cli.Context) error {
-			CheckIfGocryptfsIsInstalled()
 			InitKeyStore(cCtx)
 			return nil
 		},
@@ -139,6 +138,7 @@ func InitKeyStore(cCtx *cli.Context) {
 	//Nested directory creation. Check full path
 	switch keyType {
 	case KeyTypeGoCryptFS:
+		CheckIfGocryptfsIsInstalled()
 		if !DirectoryExists(GoCryptFSDirName) {
 			CreateDirectory(GoCryptFSDirName)
 		}
@@ -156,7 +156,7 @@ func InitKeyStore(cCtx *cli.Context) {
 		}
 		fmt.Println("Init keystore done")
 	default:
-		CheckError(ErrInvalidKeyType, "error initializing key store")
+		CheckError(ErrInvalidKeyType, "Error initializing key store : "+keyType)
 	}
 }
 
@@ -175,7 +175,7 @@ func CreateKeyCmd(cCtx *cli.Context) {
 	case KeyTypeW3SecretKey:
 		CreateW3SecretKey(keyName, insecure)
 	default:
-		CheckError(ErrInvalidKeyType, "error creating key")
+		CheckError(ErrInvalidKeyType, "Error creating key : "+keyType)
 	}
 }
 
@@ -194,7 +194,7 @@ func ImportKeyCmd(cCtx *cli.Context) {
 	case KeyTypeW3SecretKey:
 		ImportW3SecretKey(keyName, insecure)
 	default:
-		CheckError(ErrInvalidKeyType, "error importing key")
+		CheckError(ErrInvalidKeyType, "Error importing key : "+keyType)
 	}
 }
 
@@ -230,7 +230,7 @@ func DeleteKeyCmd(cCtx *cli.Context) {
 	case KeyTypeW3SecretKey:
 		DeleteW3SecretKey(keyName)
 	default:
-		CheckError(ErrInvalidKeyType, "error deleting key")
+		CheckError(ErrInvalidKeyType, "Error deleting key : "+keyType)
 	}
 
 	fmt.Printf("Deleted key: %s\n", keyName)
@@ -495,7 +495,7 @@ func ProcessConfigKeyPath(keyPath string, keyType string) {
 		fmt.Printf("Using the key path : %s\n", m_w3SecretKeyDir)
 
 	default:
-		CheckError(ErrInvalidKeyType, "Error processing key path")
+		CheckError(ErrInvalidKeyType, "Error processing key path : "+keyType)
 	}
 
 }
@@ -517,7 +517,7 @@ func GetPrivateKey(key string, keyType string) string {
 		case KeyTypeW3SecretKey:
 			return GetW3SecretStoragePrivateKey(keyName)
 		default:
-			CheckError(ErrInvalidKeyType, "Error processing key path")
+			CheckError(ErrInvalidKeyType, "Error processing key path : "+keyType)
 		}
 	}
 	return key
