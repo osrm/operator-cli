@@ -14,7 +14,7 @@ var (
 		Name:     "key-type",
 		Aliases:  []string{"t"},
 		Required: true,
-		Usage:    "Type of the key to be initialized (gocryptfs/w3secretkey)",
+		Usage:    "Type of the key to be initialized (gocryptfs/w3secretkeys)",
 	}
 
 	InsecureFlag = cli.BoolFlag{

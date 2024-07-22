@@ -15,19 +15,14 @@ const (
 	GoCryptFSDirName    string = "." + KeyTypeGoCryptFS
 	GocryptfsEncDirName string = ".encrypted_keys"
 	GocryptfsDecDirName string = ".decrypted_keys"
-	GoCryptFSConfigName string = GocryptfsEncDirName + "/gocryptfs.conf"
+	GoCryptFSConfigName string = "gocryptfs.conf"
 
-	KeyTypeW3SecretKey    string  = "w3secretkey"
+	KeyTypeW3SecretKey    string  = "w3secretkeys"
 	W3SecretKeyDirName    string  = "." + KeyTypeW3SecretKey
 	W3SecretKeySuffixName string  = ".ecdsa.key.json"
 	MinEntropyBits        float64 = 50
 	MaxMountRetries       int     = 5
 	RetryPeriodInSeconds  uint    = 1
-
-	// BlueOrangutanChainId       int64 = 1237146866
-	// HoleskyChainId             int64 = 17000
-	// WitnesschainMainnetChainId int64 = 1702448187
-	// EthMainnetChainId          int64 = 1
 )
 
 type ChainConfig struct {

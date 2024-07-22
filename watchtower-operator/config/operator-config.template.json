@@ -10,7 +10,7 @@
   ],
   "operator_private_key": "<alternate-path(optional) + operator-private-key-name>",
   "operator_encrypted_key": "<path of operator encrypted Key. e.g. ~/.witnesschain.com/.encrypted_keys/operator.key>",
-  "encrypted_key_type": "<type of encrypted keys used. e.g. gocryptfs or w3secretkey>",
+  "encrypted_key_type": "<type of encrypted keys used. e.g. gocryptfs or w3secretkeys>",
   "eth_rpc_url": "<Mainnet RPC URL>",
   "chain_id": 1,
   "gas_limit": "<gas-limit>",

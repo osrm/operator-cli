@@ -23,7 +23,7 @@ var m_retryMounting bool = false
 
 var m_gocryptfsEncDir string = filepath.Join(GoCryptFSDirName, GocryptfsEncDirName)
 var m_gocryptfsDecDir string = filepath.Join(GoCryptFSDirName, GocryptfsDecDirName)
-var m_goCryptFSConfig string = filepath.Join(GoCryptFSDirName, GoCryptFSConfigName)
+var m_goCryptFSConfig string = filepath.Join(m_gocryptfsEncDir, GoCryptFSConfigName)
 var m_w3SecretKeyDir string = W3SecretKeyDirName
 var m_w3SecretKeysPassword string = ""
 
@@ -244,8 +244,7 @@ func ListKeyCmd(cCtx *cli.Context) {
 
 	switch keyType {
 	case KeyTypeGoCryptFS:
-		ValidateAndMount()
-		dir, err = os.Open(m_gocryptfsDecDir)
+		dir, err = os.Open(m_gocryptfsEncDir)
 	case KeyTypeW3SecretKey:
 		dir, err = os.Open(m_w3SecretKeyDir)
 	default:
@@ -263,6 +262,10 @@ func ListKeyCmd(cCtx *cli.Context) {
 	fmt.Printf("   " + strings.Repeat("-", 55) + "\n")
 
 	for _, file := range files {
+		if file.Name() == GoCryptFSConfigName {
+			continue
+		}
+
 		createdTime := file.ModTime().Format("02-01-2006 15:04:05")
 		fmt.Printf("   %-30s %-25s\n", file.Name(), createdTime)
 	}
