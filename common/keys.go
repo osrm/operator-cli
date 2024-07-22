@@ -482,7 +482,7 @@ func ProcessConfigKeyPath(keyPath string, keyType string) {
 			parentPathGoCryptFS := filepath.Dir(filepath.Dir(dir))
 			m_gocryptfsEncDir = filepath.Join(parentPathGoCryptFS, GocryptfsEncDirName)
 			m_gocryptfsDecDir = filepath.Join(parentPathGoCryptFS, GocryptfsDecDirName)
-			m_goCryptFSConfig = filepath.Join(parentPathGoCryptFS, GoCryptFSConfigName)
+			m_goCryptFSConfig = filepath.Join(m_gocryptfsEncDir, GoCryptFSConfigName)
 			m_isFullPath = true
 		}
 		fmt.Printf("Using the key path : %s\n", m_gocryptfsEncDir)
