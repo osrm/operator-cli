@@ -1,4 +1,4 @@
-.encrypted_keys
-.decrypted_keys
+.gocryptfs
+.w3secretkeys
 main
 watchtower-operator/watchtower-operator

@@ -10,6 +10,13 @@ var (
 		Usage:    "Name of the key to be created",
 	}
 
+	KeyStoreType = cli.StringFlag{
+		Name:     "key-type",
+		Aliases:  []string{"t"},
+		Required: true,
+		Usage:    "Type of the key to be initialized (gocryptfs/w3secretkeys)",
+	}
+
 	InsecureFlag = cli.BoolFlag{
 		Name:    "insecure",
 		Aliases: []string{"i"},

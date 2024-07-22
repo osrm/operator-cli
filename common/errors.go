@@ -12,6 +12,7 @@ var (
 	ErrInvalidPassword           = errors.New("invalid password")
 	ErrNotADirectory             = errors.New("is not a directory")
 	ErrInvalidEncryptedDirectory = errors.New("invalid gocryptfs encrypted directory")
+	ErrInvalidKeyType            = errors.New("invalid key type")
 )
 
 func CheckErrorWithoutUnmount(err error, description string) {

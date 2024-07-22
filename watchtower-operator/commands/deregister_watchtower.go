@@ -1,9 +1,9 @@
 package operator_commands
 
 import (
-	"context"
 	"fmt"
 
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/witnesschain-com/diligencewatchtower-client/keystore"
 	wc_common "github.com/witnesschain-com/operator-cli/common"
 	"github.com/witnesschain-com/operator-cli/common/bindings/OperatorRegistry"
@@ -30,15 +30,13 @@ func DeRegisterWatchtowerCmd() *cli.Command {
 }
 
 func DeRegisterWatchtower(config *operator_config.OperatorConfig) {
-	client := wc_common.ConnectToUrl(config.EthRPCUrl)
-	chainID, err := client.ChainID(context.Background())
-	wc_common.CheckError(err, "failed to retrive chain ID")
-	fmt.Println("chainID: " + chainID.String())
+	var client *ethclient.Client
+	client, config.ChainID = wc_common.ConnectToUrl(config.EthRPCUrl)
 
-	operatorRegistry, err := OperatorRegistry.NewOperatorRegistry(wc_common.NetworkConfig[chainID.String()].OperatorRegistryAddress, client)
+	operatorRegistry, err := OperatorRegistry.NewOperatorRegistry(wc_common.NetworkConfig[config.ChainID.String()].OperatorRegistryAddress, client)
 	wc_common.CheckError(err, "Instantiating OperatorRegistry contract failed")
 
-	vc := &keystore.VaultConfig{Address: config.OperatorAddress, ChainID: chainID, PrivateKey: config.OperatorPrivateKey, Endpoint: config.Endpoint}
+	vc := &keystore.VaultConfig{Address: config.OperatorAddress, ChainID: config.ChainID, PrivateKey: config.OperatorPrivateKey, Endpoint: config.Endpoint}
 	operatorVault, err := keystore.SetupVault(vc)
 	if err != nil {
 		wc_common.CheckError(err, "unable to setup vault")
@@ -49,19 +47,18 @@ func DeRegisterWatchtower(config *operator_config.OperatorConfig) {
 		return
 	}
 
-	transactOpts := operatorVault.NewTransactOpts(chainID)
-
+	transactOpts := operatorVault.NewTransactOpts(config.ChainID)
 
 	for _, watchtowerAddress := range config.WatchtowerAddresses {
 		fmt.Println("Deregister watchtower: " + watchtowerAddress.Hex())
-		if wc_common.IsWatchtowerRegistered(watchtowerAddress, operatorRegistry) == false {
+		if !wc_common.IsWatchtowerRegistered(watchtowerAddress, operatorRegistry) {
 			fmt.Printf("Watchtower %s is already deRegistered\n", watchtowerAddress.Hex())
 			continue
 		}
 
 		regTx, err := operatorRegistry.DeRegister(transactOpts, watchtowerAddress)
 		wc_common.CheckError(err, "Registering watchtower as operator failed")
-		fmt.Printf("Tx sent: %s/tx/%s\n", wc_common.NetworkConfig[chainID.String()].BlockExplorer, regTx.Hash().Hex())
+		fmt.Printf("Tx sent: %s/tx/%s\n", wc_common.NetworkConfig[config.ChainID.String()].BlockExplorer, regTx.Hash().Hex())
 		wc_common.WaitForTransactionReceipt(client, regTx, config.TxReceiptTimeout)
 	}
 }

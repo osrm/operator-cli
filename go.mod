@@ -3,11 +3,12 @@ module github.com/witnesschain-com/operator-cli
 go 1.22.1
 
 require (
+	github.com/Layr-Labs/eigensdk-go v0.1.8
 	github.com/ethereum/go-ethereum v1.14.5
 	github.com/howeyc/gopass v0.0.0-20210920133722-c8aef6fb66ef
 	github.com/urfave/cli/v2 v2.27.2
 	github.com/wagslane/go-password-validator v0.3.0
-	github.com/witnesschain-com/diligencewatchtower-client v1.0.6
+	github.com/witnesschain-com/diligencewatchtower-client v1.0.8
 )
 
 require (

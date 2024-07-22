@@ -1,10 +1,10 @@
 package operator_commands
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/witnesschain-com/diligencewatchtower-client/keystore"
 	wc_common "github.com/witnesschain-com/operator-cli/common"
 	"github.com/witnesschain-com/operator-cli/common/bindings/AvsDirectory"
@@ -33,17 +33,15 @@ func DeRegisterOperatorFromAVSCmd() *cli.Command {
 }
 
 func DeRegisterOperatorFromAVS(config *operator_config.OperatorConfig) {
-	client := wc_common.ConnectToUrl(config.EthRPCUrl)
-	chainID, err := client.ChainID(context.Background())
-	wc_common.CheckError(err, "unable to retrive chainID from: " + config.EthRPCUrl)
+	var client *ethclient.Client
+	client, config.ChainID = wc_common.ConnectToUrl(config.EthRPCUrl)
 
-	if wc_common.NetworkConfig[chainID.String()].WitnessHubAddress.Cmp(common.Address{0}) == 0  {
-		fmt.Printf("Contract %v not found at %v\n. Please verify that witnesschain contract are deployed for this chain", wc_common.NetworkConfig[chainID.String()].WitnessHubAddress, config.EthRPCUrl)
+	if wc_common.NetworkConfig[config.ChainID.String()].WitnessHubAddress.Cmp(common.Address{0}) == 0 {
+		fmt.Printf("Contract %v not found at %v\n. Please verify that witnesschain contract are deployed for this chain", wc_common.NetworkConfig[config.ChainID.String()].WitnessHubAddress, config.EthRPCUrl)
 	}
 
 	operatorRegistry, err := OperatorRegistry.NewOperatorRegistry(wc_common.NetworkConfig[config.ChainID.String()].OperatorRegistryAddress, client)
 	wc_common.CheckError(err, "Instantiating OperatorRegistry contract failed")
-
 
 	if !wc_common.IsOperatorWhitelisted(config.OperatorAddress, operatorRegistry) {
 		fmt.Printf("Operator %s is not whitelisted\n", config.OperatorAddress.Hex())
@@ -61,19 +59,16 @@ func DeRegisterOperatorFromAVS(config *operator_config.OperatorConfig) {
 	witnessHub, err := WitnessHub.NewWitnessHub(wc_common.NetworkConfig[config.ChainID.String()].WitnessHubAddress, client)
 	wc_common.CheckError(err, "Instantiating WitnessHub contract failed")
 
-
-	fmt.Printf("operator Address: %v\n", config.OperatorAddress)
-	fmt.Printf("operator PrivateKey %v\n", config.OperatorPrivateKey)
-	vc := &keystore.VaultConfig{Address: config.OperatorAddress, PrivateKey: config.OperatorPrivateKey, GocryptfsKey: config.OperatorEncryptedKey, Endpoint: config.Endpoint, ChainID: chainID}
+	vc := &keystore.VaultConfig{Address: config.OperatorAddress, PrivateKey: config.OperatorPrivateKey, Endpoint: config.Endpoint, ChainID: config.ChainID}
 	operatorVault, err := keystore.SetupVault(vc)
-	wc_common.CheckError(err, "unable to setup operator Vault: " + vc.Address.Hex())
+	wc_common.CheckError(err, "unable to setup operator Vault: "+vc.Address.Hex())
 
 	transactOpts := operatorVault.NewTransactOpts(config.ChainID)
 
 	tx, err := witnessHub.DeregisterOperatorFromAVS(transactOpts, config.OperatorAddress)
 	wc_common.CheckError(err, "deregistering operator to AVS failed")
 
-	fmt.Printf("Tx sent: %s/tx/%s\n", wc_common.NetworkConfig[chainID.String()].BlockExplorer, tx.Hash().Hex())
+	fmt.Printf("Tx sent: %s/tx/%s\n", wc_common.NetworkConfig[config.ChainID.String()].BlockExplorer, tx.Hash().Hex())
 
 	wc_common.WaitForTransactionReceipt(client, tx, config.TxReceiptTimeout)
 }
