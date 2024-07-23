@@ -28,7 +28,6 @@ func PrepareTransactionOptions(client *ethclient.Client, chainId big.Int, gasLim
 	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, &chainId)
 	CheckError(err, "Transactor creation failed")
 
-
 	auth.Value = big.NewInt(0) // in wei
 	auth.GasLimit = gasLimit   // in units
 	auth.GasPrice = gasPrice
@@ -36,7 +35,7 @@ func PrepareTransactionOptions(client *ethclient.Client, chainId big.Int, gasLim
 	return auth
 }
 
-func WaitForTransactionReceipt(client *ethclient.Client, txn *types.Transaction, timeout int64) {
+func WaitForTransactionReceipt(client *ethclient.Client, txn *types.Transaction, timeout uint64) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*(time.Second))
 
 	defer cancel()

@@ -17,12 +17,16 @@ const (
 	GocryptfsDecDirName string = ".decrypted_keys"
 	GoCryptFSConfigName string = "gocryptfs.conf"
 
-	KeyTypeW3SecretKey    string  = "w3secretkeys"
-	W3SecretKeyDirName    string  = "." + KeyTypeW3SecretKey
-	W3SecretKeySuffixName string  = ".ecdsa.key.json"
-	MinEntropyBits        float64 = 50
-	MaxMountRetries       int     = 5
-	RetryPeriodInSeconds  uint    = 1
+	KeyTypeW3SecretKey    string = "w3secretkeys"
+	W3SecretKeyDirName    string = "." + KeyTypeW3SecretKey
+	W3SecretKeySuffixName string = ".ecdsa.key.json"
+
+	MinEntropyBits          float64 = 50
+	MaxMountRetries         int     = 5
+	RetryPeriodInSeconds    uint    = 1
+	DefaultGasLimit         uint64  = 1000000
+	DefaultExpiration       uint64  = 1
+	DefaultTxReceiptTimeout uint64  = 300
 )
 
 type ChainConfig struct {

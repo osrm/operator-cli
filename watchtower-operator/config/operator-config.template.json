@@ -1,8 +1,8 @@
 {
   "watchtower_private_keys": [
-    "<alternate-path(optional) + WatchTower1-private-key-name>",
-    "<alternate-path(optional) + WatchTower2-private-key-name>",
-    "<alternate-path(optional) + WatchTower3-private-key-name>"
+    "raw-watchTower1-private-key>",
+    "raw-watchTower2-private-key>",
+    "raw-watchTower3-private-key>"
   ],
   "watchtower_encrypted_keys": [
     "<path of encrypted keys. e.g. ~/.witnesschain.com/.encrypted_keys/watchtower1.key",

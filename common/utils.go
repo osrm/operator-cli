@@ -75,7 +75,7 @@ func GetPaddedValue(value []byte) [32]byte {
 	return paddedValue
 }
 
-func CalculateExpiry(client *ethclient.Client, expectedExpiryDays int64) *big.Int {
+func CalculateExpiry(client *ethclient.Client, expectedExpiryDays uint64) *big.Int {
 	// Get the latest block header
 	header, err := client.HeaderByNumber(context.Background(), nil)
 	CheckError(err, "Could not get HeaderByNumber")
@@ -83,7 +83,7 @@ func CalculateExpiry(client *ethclient.Client, expectedExpiryDays int64) *big.In
 	// Get the current timestamp from the latest block header
 	currentTimestamp := big.NewInt(int64(header.Time))
 
-	expiryInSeconds := expectedExpiryDays * 24 * 60 * 60
+	expiryInSeconds := int64(expectedExpiryDays * 24 * 60 * 60)
 	timeToElapse := big.NewInt(expiryInSeconds)
 
 	expiry := new(big.Int).Add(currentTimestamp, timeToElapse)

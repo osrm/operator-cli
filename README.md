@@ -63,10 +63,9 @@ Default file: config/operator-config.template.json (reference file)
 |operator_encrypted_key | Encrypted private key of the operator(on which the actions will be performed) (use this field if you want to enter raw key)|
 |encrypted_key_type | The type of encryption used for the keys (valid values = w3secretkeys/gocryptfs) |
 |eth_rpc_url | The RPC URL where you want to perform the transactions |
-|chain_id | Chain ID of the respective chain |
-|gas_limit | The gas limit you want to set while sending the transactions |
-|tx_receipt_timeout| Timeout in seconds for waiting of tx receipts |
-|expiry| Expiry in days after which the operator signature becomes invalid |
+|gas_limit | The gas limit you want to set while sending the transactions (Default value = 1000000). No need to add in the config unless you want to overwrite the default values.  |
+|tx_receipt_timeout| Timeout in seconds for waiting of tx receipts (Default value = 300). No need to add in the config unless you want to overwrite the default values. |
+|expiry| Expiry in days after which the operator signature becomes invalid (Default value = 1). No need to add in the config unless you want to overwrite the default values. |
 
 ## How to use the encrypted keys
 
@@ -89,6 +88,7 @@ The flags which can be used with the key commands are
 
 ```
 init operation for key-type gocryptfs
+
 $ watchtower-operator keys init -t gocryptfs -i
 
 Creating directory:  .gocryptfs
@@ -100,6 +100,7 @@ After this command, two directories `.encrypted_keys` and `.decrypted_keys` are 
 
 ```
 init operation for key-type gocryptfs
+
 $ watchtower-operator keys init -t w3secretkeys -i
 
 Creating directory:  .w3secretkeys
@@ -147,10 +148,10 @@ $ watchtower-operator keys list
    -------------------------------------------------------
 ```
 
-Going forward, the CLI will ask for password to decrpyt and use these keys. This is how the config will look like when using encrypted keys and the keys are present in the default location i.e. `~/.witnesschain/cli/.encrypted_keys`
+Going forward, the CLI will ask for password to decrpyt and use these keys. This is how the config will look like when using encrypted keys and the keys are present in the default location i.e. `~/.witnesschain/cli/.gocryptfs/.encrypted_keys`
 
 > NOTE -
-> If you want to use encrypted keys, put use the field `watchtower_encrypted_keys` and use `watchtower_private_keys` when you want to use raw private keys. You need to either give the full path(if you want an alternate path to be used) or the name(for the default path) of the encrypted keys as show in the example below
+> If you want to use encrypted keys, use the field `watchtower_encrypted_keys` and use `watchtower_private_keys` when you want to use raw private keys. You need to either give the full path(if you want an alternate path to be used) or the name(for the default path) of the encrypted keys as show in the example below
 
 The below example shows how you can use the key names which will be taken from the default path
 ```
@@ -172,11 +173,7 @@ The below example shows how you can use encrypted keys using `w3secretkeys` type
   ],
   "operator_encrypted_key": "~/alternate/path/to/your/keys/op1",
   "encrypted_key_type": "w3secretkeys",
-  "eth_rpc_url": "<Mainnet RPC URL>",
-  "chain_id": 17000,
-  "gas_limit": 1000000,
-  "tx_receipt_timeout": 300,
-  "expiry": 1
+  "eth_rpc_url": "<Mainnet RPC URL>"
 }
 ```
 
@@ -188,13 +185,8 @@ The below example shows how you can use the key names which will be taken from a
   ],
   "operator_encrypted_key": "~/alternate/path/to/your/keys/.encrypted_keys/op1",
   "encrypted_key_type": "gocryptfs",
-  "eth_rpc_url": "<Mainnet RPC URL>",
-  "chain_id": 17000,
-  "gas_limit": 1000000,
-  "tx_receipt_timeout": 300,
-  "expiry": 1
+  "eth_rpc_url": "<Mainnet RPC URL>"
 }
 ```
-
 > NOTE -
 > If you are using an alternate path, all the keys present in the config have to be present in the same path. You cannot save the keys in different locations in the same config
