@@ -87,7 +87,7 @@ Now create a new file, `operator-config.json`, and fill in the operator
 private keys and watchtower private keys. You must also change the 
 `eth_rpc_url` to the L1 Ethereum node that you trust.
 
-Create a new configuration file with the following template for testnet:
+Create a new configuration file (`operator-config.json`) with the following template for testnet:
 
 ```
 {
@@ -104,7 +104,7 @@ Create a new configuration file with the following template for testnet:
 In case you are running on mainnet, replace `eth_rpc_url` and 
 `proof_submission_rpc_url`.
 
-Template config for mainnet
+Template config (`operator-config.json`) for mainnet
 
 ```
 {
