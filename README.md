@@ -25,7 +25,7 @@ gocryptfs should be installed on the machine you will use the CLI tool on. The i
 
    - Build the binaries
     ```
-    cd operator-cli/watchtower-operator-cli
+    cd operator-cli/watchtower-operator
     ./build
     ```
 
