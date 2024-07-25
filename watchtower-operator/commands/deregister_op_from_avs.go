@@ -16,7 +16,7 @@ import (
 )
 
 func DeRegisterOperatorFromAVSCmd() *cli.Command {
-	wc_common.ConfigPathFlag.Value = wc_common.DefaultOpL1Config
+	wc_common.ConfigPathFlag.Value = wc_common.DefaultOpConfig
 	var deregisterOperatorFromAVSCmd = &cli.Command{
 		Name:  "deRegisterOperatorFromAVS",
 		Usage: "De-register the operator from AVS",

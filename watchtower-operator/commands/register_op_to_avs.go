@@ -16,7 +16,7 @@ import (
 )
 
 func RegisterOperatorToAVSCmd() *cli.Command {
-	wc_common.ConfigPathFlag.Value = wc_common.DefaultOpL1Config
+	wc_common.ConfigPathFlag.Value = wc_common.DefaultOpConfig
 	var registerOperatorToAVSCmd = &cli.Command{
 		Name:  "registerOperatorToAVS",
 		Usage: "Register the operator to AVS",

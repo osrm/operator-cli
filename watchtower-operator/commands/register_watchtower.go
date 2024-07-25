@@ -14,7 +14,7 @@ import (
 )
 
 func RegisterWatchtowerCmd() *cli.Command {
-	wc_common.ConfigPathFlag.Value = wc_common.DefaultOpL2Config
+	wc_common.ConfigPathFlag.Value = wc_common.DefaultOpConfig
 	var registerWatchtowerCmd = &cli.Command{
 		Name:  "registerWatchtower",
 		Usage: "Register a watchtower",

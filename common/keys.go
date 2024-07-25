@@ -107,6 +107,9 @@ func DeleteCmd() *cli.Command {
 			&KeyStoreType,
 		},
 		Action: func(cCtx *cli.Context) error {
+			if cCtx.String("key-name") == "" {
+				CheckError(ErrEmptyKeyName, "Required flag \"key-name\" not set")
+			}
 			DeleteKeyCmd(cCtx)
 			return nil
 		},
@@ -165,9 +168,6 @@ func CreateKeyCmd(cCtx *cli.Context) {
 	keyType := cCtx.String("key-type")
 	insecure := cCtx.Bool("insecure")
 
-	err := ValidateKeyName(keyName)
-	CheckError(err, "Error validating key name")
-
 	switch keyType {
 	case KeyTypeGoCryptFS:
 		ValidateAndMount()
@@ -183,9 +183,6 @@ func ImportKeyCmd(cCtx *cli.Context) {
 	keyName := cCtx.String("key-name")
 	keyType := cCtx.String("key-type")
 	insecure := cCtx.Bool("insecure")
-
-	err := ValidateKeyName(keyName)
-	CheckError(err, "Error validating key name")
 
 	switch keyType {
 	case KeyTypeGoCryptFS:
@@ -208,6 +205,9 @@ func ExportCmd() *cli.Command {
 			&KeyStoreType,
 		},
 		Action: func(cCtx *cli.Context) error {
+			if cCtx.String("key-name") == "" {
+				CheckError(ErrEmptyKeyName, "Required flag \"key-name\" not set")
+			}
 			ExportKeyCmd(cCtx)
 			return nil
 		},
@@ -257,9 +257,9 @@ func ListKeyCmd(cCtx *cli.Context) {
 	files, err := dir.Readdir(-1)
 	CheckError(err, "Error reading directory")
 
-	fmt.Printf("   " + strings.Repeat("-", 55) + "\n")
-	fmt.Printf("   %-30s %-25s\n", "Name", "Created")
-	fmt.Printf("   " + strings.Repeat("-", 55) + "\n")
+	fmt.Printf("   " + strings.Repeat("-", 95) + "\n")
+	fmt.Printf("   %-70s %-25s\n", "Name", "Created")
+	fmt.Printf("   " + strings.Repeat("-", 95) + "\n")
 
 	for _, file := range files {
 		if file.Name() == GoCryptFSConfigName {
@@ -267,10 +267,10 @@ func ListKeyCmd(cCtx *cli.Context) {
 		}
 
 		createdTime := file.ModTime().Format("02-01-2006 15:04:05")
-		fmt.Printf("   %-30s %-25s\n", file.Name(), createdTime)
+		fmt.Printf("   %-70s %-25s\n", file.Name(), createdTime)
 	}
 
-	fmt.Printf("   " + strings.Repeat("-", 55) + "\n")
+	fmt.Printf("   " + strings.Repeat("-", 95) + "\n")
 }
 
 func InitGocryptfs(insecure bool) {
@@ -326,13 +326,23 @@ func GetPrivateKeyFromUser() string {
 }
 
 func CreateGoCryptfsKey(keyName string) {
+	privateKey := GenerateRandomKey()
+
+	address := GetPublicAddressFromPrivateKey(privateKey)
+
+	if keyName == "" {
+		keyName = address.String()
+	}
+
+	err := ValidateKeyName(keyName)
+	CheckError(err, "Error validating key name")
+
 	keyFile := filepath.Join(m_gocryptfsDecDir, keyName)
 
 	if !AllowKeyOverwrite(keyFile) {
 		return
 	}
 
-	privateKey := GenerateRandomKey()
 	privateKeyHex := hex.EncodeToString(privateKey.D.Bytes())
 	CreateKeyFileAndStoreKey(keyFile, privateKeyHex)
 
@@ -349,6 +359,18 @@ func CreateKeyFileAndStoreKey(keyFile string, privateKey string) {
 }
 
 func CreateW3SecretKey(keyName string, insecure bool) {
+	password := GetPasswordFromPrompt(insecure, "create")
+	privateKey := GenerateRandomKey()
+
+	address := GetPublicAddressFromPrivateKey(privateKey)
+
+	if keyName == "" {
+		keyName = address.String()
+	}
+
+	err := ValidateKeyName(keyName)
+	CheckError(err, "Error validating key name")
+
 	keyFileName := keyName + W3SecretKeySuffixName
 	keyFile := filepath.Join(m_w3SecretKeyDir, keyFileName)
 
@@ -356,28 +378,56 @@ func CreateW3SecretKey(keyName string, insecure bool) {
 		return
 	}
 
-	password := GetPasswordFromPrompt(insecure, "create")
-	privateKey := GenerateRandomKey()
-	err := sdkEcdsa.WriteKey(keyFile, privateKey, password)
+	err = sdkEcdsa.WriteKey(keyFile, privateKey, password)
 	CheckError(err, "Error Writing ecdsa key")
 
 	fmt.Printf("Created key: %s\n", keyName)
 }
 
 func ImportGoCryptfsKey(keyName string) {
+	privateKey := GetPrivateKeyFromUser()
+	privateKey = strings.TrimPrefix(privateKey, "0x")
+
+	privKeyBytes, err := hex.DecodeString(privateKey)
+	CheckError(err, "Error decoding private key hex string")
+
+	privKey, err := crypto.ToECDSA(privKeyBytes)
+	CheckError(err, "Error converting bytes to ECDSA private key")
+
+	address := GetPublicAddressFromPrivateKey(privKey)
+
+	if keyName == "" {
+		keyName = address.String()
+	}
+
+	err = ValidateKeyName(keyName)
+	CheckError(err, "Error validating key name")
+
 	keyFile := filepath.Join(m_gocryptfsDecDir, keyName)
 
 	if !AllowKeyOverwrite(keyFile) {
 		return
 	}
 
-	privateKey := GetPrivateKeyFromUser()
-	privateKey = strings.TrimPrefix(privateKey, "0x")
 	CreateKeyFileAndStoreKey(keyFile, privateKey)
 	fmt.Printf("Imported key: %s\n", keyName)
 }
 
 func ImportW3SecretKey(keyName string, insecure bool) {
+	password := GetPasswordFromPrompt(insecure, "import")
+
+	privateKey := GetPrivateKeyFromUser()
+	privateKey = strings.TrimPrefix(privateKey, "0x")
+	privateKeyPair, _ := crypto.HexToECDSA(privateKey)
+	address := GetPublicAddressFromPrivateKey(privateKeyPair)
+
+	if keyName == "" {
+		keyName = address.String()
+	}
+
+	err := ValidateKeyName(keyName)
+	CheckError(err, "Error validating key name")
+
 	keyFileName := keyName + W3SecretKeySuffixName
 	keyFile := filepath.Join(m_w3SecretKeyDir, keyFileName)
 
@@ -385,13 +435,7 @@ func ImportW3SecretKey(keyName string, insecure bool) {
 		return
 	}
 
-	password := GetPasswordFromPrompt(insecure, "import")
-
-	privateKey := GetPrivateKeyFromUser()
-	privateKey = strings.TrimPrefix(privateKey, "0x")
-	privateKeyPair, _ := crypto.HexToECDSA(privateKey)
-
-	err := sdkEcdsa.WriteKey(keyFile, privateKeyPair, password)
+	err = sdkEcdsa.WriteKey(keyFile, privateKeyPair, password)
 	CheckError(err, "Error Writing ecdsa key")
 	fmt.Printf("Imported key: %s\n", keyName)
 }

@@ -36,8 +36,9 @@ func GetOpertorSignature(client *ethclient.Client, avsDirectory *AvsDirectory.Av
 }
 
 func SignOperatorAddress(client *ethclient.Client, operatorRegistry *OperatorRegistry.OperatorRegistry, vault *keystore.Vault, OperatorAddress common.Address, salt [32]byte, expiry *big.Int) []byte {
-	digestHash, err := operatorRegistry.CalculateWatchtowerRegistrationMessageHash(&bind.CallOpts{}, OperatorAddress, salt, expiry)
-	fullSignature, err := vault.SignData(digestHash[:], apitypes.DataTyped.Mime)
-	wc_common.CheckError(err, "unable to sign operator address")
+	digestHash, err1 := operatorRegistry.CalculateWatchtowerRegistrationMessageHash(&bind.CallOpts{}, OperatorAddress, salt, expiry)
+	wc_common.CheckError(err1, "unable to calculate digest hash")
+	fullSignature, err2 := vault.SignData(digestHash[:], apitypes.DataTyped.Mime)
+	wc_common.CheckError(err2, "unable to sign operator address")
 	return fullSignature
 }

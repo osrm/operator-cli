@@ -13,7 +13,7 @@ import (
 )
 
 func DeRegisterWatchtowerCmd() *cli.Command {
-	wc_common.ConfigPathFlag.Value = wc_common.DefaultOpL2Config
+	wc_common.ConfigPathFlag.Value = wc_common.DefaultOpConfig
 	var deregisterWatchtowerCmd = &cli.Command{
 		Name:  "deRegisterWatchtower",
 		Usage: "De-register the watchtower",

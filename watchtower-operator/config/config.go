@@ -45,6 +45,8 @@ func GetConfigFromContext(cCtx *cli.Context) *OperatorConfig {
 	err = json.Unmarshal(data, &config)
 	wc_common.CheckError(err, "Error unmarshaling json data")
 
+	SetDefaultValues(&config)
+
 	if len(config.WatchtowerEncryptedKeys) != 0 {
 		// get the path from the first key, as others should be same
 		// will not work with different paths
@@ -92,8 +94,6 @@ func GetConfigFromContext(cCtx *cli.Context) *OperatorConfig {
 	if config.OperatorAddress.Cmp(common.Address{0}) == 0 {
 		panic("operatorAddress is zero")
 	}
-
-	SetDefaultValues(&config)
 
 	return &config
 }

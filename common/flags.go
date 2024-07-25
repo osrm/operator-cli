@@ -4,17 +4,16 @@ import "github.com/urfave/cli/v2"
 
 var (
 	KeyNameFlag = cli.StringFlag{
-		Name:     "key-name",
-		Aliases:  []string{"k"},
-		Required: true,
-		Usage:    "Name of the key to be created",
+		Name:    "key-name",
+		Aliases: []string{"k"},
+		Usage:   "Name of the key to be created",
 	}
 
 	KeyStoreType = cli.StringFlag{
-		Name:     "key-type",
-		Aliases:  []string{"t"},
-		Required: true,
-		Usage:    "Type of the key to be initialized (gocryptfs/w3secretkeys)",
+		Name:    "key-type",
+		Aliases: []string{"t"},
+		Usage:   "Type of the key to be initialized (gocryptfs/w3secretkeys)",
+		Value:   KeyTypeW3SecretKey,
 	}
 
 	InsecureFlag = cli.BoolFlag{
