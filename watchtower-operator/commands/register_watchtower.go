@@ -24,6 +24,8 @@ func RegisterWatchtowerCmd() *cli.Command {
 		Action: func(cCtx *cli.Context) error {
 			config := operator_config.GetConfigFromContext(cCtx)
 			RegisterWatchtower(config)
+			config.EthRPCUrl = config.ProofSubmissionRPC
+			RegisterWatchtower(config)
 			return nil
 		},
 	}

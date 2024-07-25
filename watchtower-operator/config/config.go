@@ -23,6 +23,7 @@ type OperatorConfig struct {
 	OperatorAddress          common.Address   `json:"operator_address"`
 	OperatorEncryptedKey     string           `json:"operator_encrypted_key"`
 	EthRPCUrl                string           `json:"eth_rpc_url"`
+	ProofSubmissionRPC       string           `json:"proof_submission_rpc_urL"`
 	GasLimit                 uint64           `json:"gas_limit"`
 	TxReceiptTimeout         uint64           `json:"tx_receipt_timeout"`
 	ExpiryInDays             uint64           `json:"expiry_in_days"`
