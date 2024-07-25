@@ -6,16 +6,14 @@ watchtower-operator is a command-line interface (CLI) tool for interacting with 
 ## Installation
 You can get the watchtower-operator cli prebuilt, or build from source
 
-### Pre-requisite
 
-gocryptfs should be installed on the machine you will use the CLI tool on. The installation and running of gocryptfs is easier and smoother on Unbuntu/Debian systems. So, to use the CLI, those would be the ideal systems
-
-1. **Prebuilt**
+### Prebuilt
    
-    You can run the following command in your terminal and follow instructions provided by the script to use the cli
-    ```
-    curl -sSfL witnesschain.com/install-operator-cli | bash
-    ```
+You can run the following command in your terminal and follow instructions provided by the script to use the cli
+```
+curl -sSfL witnesschain.com/install-operator-cli | bash
+```
+
 Installation instructions for building from source is available in 
 [docs/install.md](docs/install.md).
 
