@@ -16,18 +16,8 @@ gocryptfs should be installed on the machine you will use the CLI tool on. The i
     ```
     curl -sSfL witnesschain.com/install-operator-cli | bash
     ```
-
-1. **Building from source**
-   - clone the repository 
-    ```
-    git clone https://github.com/witnesschain-com/operator-cli.git
-    ```
-
-   - Build the binaries
-    ```
-    cd operator-cli/watchtower-operator
-    ./build
-    ```
+Installation instructions for building from source is available in 
+[docs/install.md](docs/install.md).
 
 
 ## How to use
