@@ -67,12 +67,14 @@ Imported key: watchtower1
 
 ```
 $ watchtower-operator keys list
-   -----------------------------------------------------------------------------------------------
-   Name                                                                   Created
-   -----------------------------------------------------------------------------------------------
-   operator.ecdsa.key.json                                                25-07-2024 14:57:20
-   watchtower1.ecdsa.key.json                                             25-07-2024 14:57:36
-   -----------------------------------------------------------------------------------------------
+   ------------------------------------------------------------------------------------------------------------------------------------------------------
+   Name                                                                                                                          Created
+   ------------------------------------------------------------------------------------------------------------------------------------------------------
+   /home/ubuntu/.witnesschain/cli/.w3secretkeys/operator.ecdsa.key.json                                                    25-07-2024 14:57:20
+   /home/ubuntu/.witnesschain/cli/.w3secretkeys/watchtower1.ecdsa.key.json                                                 25-07-2024 14:57:36
+   /home/ubuntu/.witnesschain/cli/.w3secretkeys/watchtower2.ecdsa.key.json                                                 25-07-2024 14:58:01
+   ------------------------------------------------------------------------------------------------------------------------------------------------------
+
 ```
 
 These keys are stored in web3 secret storage format recommended by 
@@ -92,10 +94,10 @@ Create a new configuration file (`operator-config.json`) with the following temp
 ```
 {
   "watchtower_encrypted_keys": [
-    "watchtower1.ecdsa.key.json",
-    "watchtower2.ecdsa.key.json"
+    "/home/ubuntu/.witnesschain/cli/.w3secretkeys/watchtower1.ecdsa.key.json",
+    "/home/ubuntu/.witnesschain/cli/.w3secretkeys/watchtower2.ecdsa.key.json"
   ],
-  "operator_encrypted_key": "operator.ecdsa.key.json",
+  "operator_encrypted_key": "/home/ubuntu/.witnesschain/cli/.w3secretkeys/operator.ecdsa.key.json",
   "eth_rpc_url": "https://ethereum-holesky-rpc.publicnode.com",
   "proof_submission_rpc_url": "https://blue-orangutan-rpc.eu-north-2.gateway.fm/"
 }
@@ -109,10 +111,10 @@ Template config (`operator-config.json`) for mainnet
 ```
 {
   "watchtower_encrypted_keys": [
-    "watchtower1.ecdsa.key.json",
-    "watchtower2.ecdsa.key.json"
+    "/home/ubuntu/.witnesschain/cli/.w3secretkeys/watchtower1.ecdsa.key.json",
+    "/home/ubuntu/.witnesschain/cli/.w3secretkeys/watchtower2.ecdsa.key.json"
   ],
-  "operator_encrypted_key": "operator.ecdsa.key.json",
+  "operator_encrypted_key": "/home/ubuntu/.witnesschain/cli/.w3secretkeys/operator.ecdsa.key.json",
   "eth_rpc_url": "wss://ethereum-rpc.publicnode.com",
   "proof_submission_rpc_url": "https://rpc.witnesschain.com"
 }
