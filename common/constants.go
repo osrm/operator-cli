@@ -7,8 +7,9 @@ import (
 )
 
 const (
-	DefaultAdminConfig string = "config/admin-config.json"
-	DefaultOpConfig    string = "config/operator-config.json"
+	DefaultAdminConfig  string = "config/admin-config.json"
+	DefaultOpConfig     string = "config/operator-config.json"
+	WitnesschainCLIPath string = ".witnesschain/cli/"
 
 	KeyTypeGoCryptFS    string = "gocryptfs"
 	GoCryptFSDirName    string = "." + KeyTypeGoCryptFS

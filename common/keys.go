@@ -21,10 +21,12 @@ var m_useEncryptedKeys bool = false
 var m_isFullPath bool = false
 var m_retryMounting bool = false
 
-var m_gocryptfsEncDir string = filepath.Join(GoCryptFSDirName, GocryptfsEncDirName)
-var m_gocryptfsDecDir string = filepath.Join(GoCryptFSDirName, GocryptfsDecDirName)
+var m_gocryptfsDirName string = filepath.Join(GetUserHomeDir(), WitnesschainCLIPath, GoCryptFSDirName)
+var m_gocryptfsEncDir string = filepath.Join(m_gocryptfsDirName, GocryptfsEncDirName)
+var m_gocryptfsDecDir string = filepath.Join(m_gocryptfsDirName, GocryptfsDecDirName)
 var m_goCryptFSConfig string = filepath.Join(m_gocryptfsEncDir, GoCryptFSConfigName)
-var m_w3SecretKeyDir string = W3SecretKeyDirName
+
+var m_w3SecretKeyDir string = filepath.Join(GetUserHomeDir(), WitnesschainCLIPath, W3SecretKeyDirName)
 var m_w3SecretKeysPassword string = ""
 
 func KeysCmd() *cli.Command {
@@ -241,12 +243,14 @@ func ListKeyCmd(cCtx *cli.Context) {
 
 	var err error = nil
 	var dir *os.File
-
+	var path string
 	switch keyType {
 	case KeyTypeGoCryptFS:
 		dir, err = os.Open(m_gocryptfsEncDir)
+		path, _ = filepath.Abs(m_gocryptfsEncDir)
 	case KeyTypeW3SecretKey:
 		dir, err = os.Open(m_w3SecretKeyDir)
+		path, _ = filepath.Abs(m_w3SecretKeyDir)
 	default:
 		CheckErrorWithoutUnmount(ErrInvalidKeyType, "error listing keys")
 	}
@@ -257,9 +261,11 @@ func ListKeyCmd(cCtx *cli.Context) {
 	files, err := dir.Readdir(-1)
 	CheckError(err, "Error reading directory")
 
-	fmt.Printf("   " + strings.Repeat("-", 95) + "\n")
-	fmt.Printf("   %-70s %-25s\n", "Name", "Created")
-	fmt.Printf("   " + strings.Repeat("-", 95) + "\n")
+	separatorLen := len(path) + 100
+	nameLen := len(path) + 75
+	fmt.Printf("   " + strings.Repeat("-", separatorLen) + "\n")
+	fmt.Printf("   %-*s %-25s\n", nameLen, "Name", "Created")
+	fmt.Printf("   " + strings.Repeat("-", separatorLen) + "\n")
 
 	for _, file := range files {
 		if file.Name() == GoCryptFSConfigName {
@@ -267,10 +273,11 @@ func ListKeyCmd(cCtx *cli.Context) {
 		}
 
 		createdTime := file.ModTime().Format("02-01-2006 15:04:05")
-		fmt.Printf("   %-70s %-25s\n", file.Name(), createdTime)
+
+		fmt.Printf("   %-*s %-25s\n", nameLen, filepath.Join(path, file.Name()), createdTime)
 	}
 
-	fmt.Printf("   " + strings.Repeat("-", 95) + "\n")
+	fmt.Printf("   " + strings.Repeat("-", separatorLen) + "\n")
 }
 
 func InitGocryptfs(insecure bool) {
@@ -310,14 +317,6 @@ func ExportKeyCmd(cCtx *cli.Context) {
 	}
 
 	fmt.Printf("Exported key: %s\n", keyName)
-}
-
-func DeleteKey(keyName string) {
-	keyFile := filepath.Join(m_gocryptfsDecDir, keyName)
-	err := os.Remove(keyFile)
-	CheckError(err, "Error deleting key\n")
-
-	fmt.Printf("Deleted key: %s\n", keyName)
 }
 
 func GetPrivateKeyFromUser() string {
@@ -449,12 +448,9 @@ func ExportGoCryptfsKey(keyName string) {
 }
 
 func ExportW3SecretKey(keyName string) {
-	keyFileName := keyName + W3SecretKeySuffixName
-	keyFile := filepath.Join(m_w3SecretKeyDir, keyFileName)
-
 	password := GetPasswordFromPrompt(true, "export")
 
-	key, err := sdkEcdsa.ReadKey(keyFile, password)
+	key, err := sdkEcdsa.ReadKey(GetSanitizedW3SecretKeyName(keyName), password)
 	CheckError(err, "Error reading ecdsa key")
 
 	privateKey := hex.EncodeToString(key.D.Bytes())
@@ -464,15 +460,12 @@ func ExportW3SecretKey(keyName string) {
 }
 
 func DeleteGoCryptfsKey(keyName string) {
-	keyFile := filepath.Join(m_gocryptfsDecDir, keyName)
-	err := os.Remove(keyFile)
+	err := os.Remove(GetSanitizedGocryptfsKeyName(keyName))
 	CheckError(err, "Error deleting key\n")
 }
 
 func DeleteW3SecretKey(keyName string) {
-	keyFileName := keyName + W3SecretKeySuffixName
-	keyFile := filepath.Join(m_w3SecretKeyDir, keyFileName)
-	err := os.Remove(keyFile)
+	err := os.Remove(GetSanitizedW3SecretKeyName(keyName))
 	CheckError(err, "Error deleting key\n")
 }
 
@@ -483,21 +476,18 @@ func ValidEncryptedDir() bool {
 }
 
 func GetGocryptfsPrivateKey(keyName string) string {
-	keyFile := filepath.Join(m_gocryptfsDecDir, keyName)
+	keyFile := GetSanitizedGocryptfsKeyName(keyName)
 	data, err := os.ReadFile(keyFile)
 	CheckError(err, "Error reading key file "+keyFile)
 	return string(data)
 }
 
 func GetW3SecretStoragePrivateKey(keyName string) string {
-	keyFileName := keyName + W3SecretKeySuffixName
-	keyFile := filepath.Join(m_w3SecretKeyDir, keyFileName)
-
 	if m_w3SecretKeysPassword == "" {
 		m_w3SecretKeysPassword = GetPasswordFromPrompt(true, "export web3 secret storage keys")
 	}
 
-	key, err := sdkEcdsa.ReadKey(keyFile, m_w3SecretKeysPassword)
+	key, err := sdkEcdsa.ReadKey(GetSanitizedW3SecretKeyName(keyName), m_w3SecretKeysPassword)
 	CheckError(err, "Error reading ecdsa key")
 
 	privateKey := hex.EncodeToString(key.D.Bytes())
@@ -580,4 +570,27 @@ func LoadPrivateKey(path string, keyType string) (*ecdsa.PrivateKey, error) {
 		return nil, err
 	}
 	return priv, nil
+}
+
+func GetSanitizedW3SecretKeyName(keyName string) string {
+	keyFileName := keyName
+	if len(filepath.Ext(keyName)) == 0 {
+		keyFileName = keyName + W3SecretKeySuffixName
+	}
+
+	keyFile := keyFileName
+	if !filepath.IsAbs(keyFile) {
+		keyFile = filepath.Join(m_w3SecretKeyDir, keyFileName)
+	}
+
+	return keyFile
+}
+
+func GetSanitizedGocryptfsKeyName(keyName string) string {
+	keyFile := keyName
+	if !filepath.IsAbs(keyFile) {
+		keyFile = filepath.Join(m_gocryptfsDecDir, keyName)
+	}
+
+	return keyFile
 }

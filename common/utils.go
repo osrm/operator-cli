@@ -194,7 +194,7 @@ func DirectoryExists(path string) bool {
 
 func CreateDirectory(path string) {
 	fmt.Println("Creating directory: ", path)
-	err := os.Mkdir(path, 0755)
+	err := os.MkdirAll(path, 0755)
 	CheckError(err, "Error creating directory")
 }
 
@@ -273,4 +273,12 @@ func CheckIfGocryptfsIsInstalled() {
 	err := cmd.Run()
 
 	CheckErrorWithoutUnmount(err, "Check if gocryptfs is installed")
+}
+
+func GetUserHomeDir() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		FatalErrorWithoutUnmount("Error getting user home directory : " + err.Error())
+	}
+	return home
 }
