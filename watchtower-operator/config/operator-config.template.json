@@ -1,19 +1,9 @@
 {
-  "watchtower_private_keys": [
-    "raw-watchTower1-private-key>",
-    "raw-watchTower2-private-key>",
-    "raw-watchTower3-private-key>"
-  ],
   "watchtower_encrypted_keys": [
-    "<path of encrypted keys. e.g. ~/.witnesschain.com/.encrypted_keys/watchtower1.key",
-    "<path of encrypted keys. e.g. ~/.witnesschain.com/.encrypted_keys/watchtower2.key"
+    "e.g. /home/ubuntu/.witnesschain/cli/.w3secretkeys/watchtower1.ecdsa.key.json",
+    "e.g. /home/ubuntu/.witnesschain/cli/.w3secretkeys/watchtower2.ecdsa.key.json"
   ],
-  "operator_private_key": "<alternate-path(optional) + operator-private-key-name>",
-  "operator_encrypted_key": "<path of operator encrypted Key. e.g. ~/.witnesschain.com/.encrypted_keys/operator.key>",
-  "encrypted_key_type": "<type of encrypted keys used. e.g. gocryptfs or w3secretkeys>",
-  "eth_rpc_url": "<Mainnet RPC URL>",
-  "chain_id": 1,
-  "gas_limit": "<gas-limit>",
-  "tx_receipt_timeout": "<timeout_in_seconds>",
-  "expiry": "<expiry_in_days>"
+  "operator_encrypted_key": "e.g. /home/ubuntu/.witnesschain/cli/.w3secretkeys/operator.ecdsa.key.json",
+  "eth_rpc_url": "https://ethereum-holesky-rpc.publicnode.com",
+  "proof_submission_rpc_url": "https://blue-orangutan-rpc.eu-north-2.gateway.fm/"
 }
