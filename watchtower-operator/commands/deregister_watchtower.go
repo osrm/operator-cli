@@ -22,9 +22,13 @@ func DeRegisterWatchtowerCmd() *cli.Command {
 		},
 		Action: func(cCtx *cli.Context) error {
 			config := operator_config.GetConfigFromContext(cCtx)
-			DeRegisterWatchtower(config)
-			config.EthRPCUrl = config.ProofSubmissionRPC
-			DeRegisterWatchtower(config)
+			if len(config.EthRPCUrl) != 0 {
+				DeRegisterWatchtower(config)
+			}
+			if len(config.ProofSubmissionRPC) != 0 {
+				config.EthRPCUrl = config.ProofSubmissionRPC
+				DeRegisterWatchtower(config)
+			}
 			return nil
 		},
 	}

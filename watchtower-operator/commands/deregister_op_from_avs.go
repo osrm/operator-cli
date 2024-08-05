@@ -25,7 +25,10 @@ func DeRegisterOperatorFromAVSCmd() *cli.Command {
 		},
 		Action: func(cCtx *cli.Context) error {
 			config := operator_config.GetConfigFromContext(cCtx)
-			DeRegisterOperatorFromAVS(config)
+			if len(config.EthRPCUrl) != 0 {
+				DeRegisterOperatorFromAVS(config)
+			}
+
 			return nil
 		},
 	}

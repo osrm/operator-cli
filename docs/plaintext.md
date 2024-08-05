@@ -10,6 +10,7 @@ The below example shows how you can use the key names which will be taken from t
     "<raw-watchtower-private-key e.g. 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef>"
   ],
   "operator_private_key": "<raw-operator-private-key e.g. abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789>",
-  "eth_rpc_url": "<Mainnet RPC URL>",
+  "eth_rpc_url": "e.g. wss://ethereum-rpc.publicnode.com",
+  "proof_submission_rpc_url": "e.g. https://rpc.witnesschain.com"
 }
 ```

@@ -25,7 +25,9 @@ func RegisterOperatorToAVSCmd() *cli.Command {
 		},
 		Action: func(cCtx *cli.Context) error {
 			config := operator_config.GetConfigFromContext(cCtx)
-			RegisterOperatorToAVS(config)
+			if len(config.EthRPCUrl) != 0 {
+				RegisterOperatorToAVS(config)
+			}
 			return nil
 		},
 	}

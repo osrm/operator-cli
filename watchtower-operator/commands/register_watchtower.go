@@ -23,9 +23,16 @@ func RegisterWatchtowerCmd() *cli.Command {
 		},
 		Action: func(cCtx *cli.Context) error {
 			config := operator_config.GetConfigFromContext(cCtx)
-			RegisterWatchtower(config)
-			config.EthRPCUrl = config.ProofSubmissionRPC
-			RegisterWatchtower(config)
+			if len(config.EthRPCUrl) != 0 {
+				// register on L1
+				RegisterWatchtower(config)
+			}
+
+			if len(config.ProofSubmissionRPC) != 0 {
+				// register on Proof submission chain
+				config.EthRPCUrl = config.ProofSubmissionRPC
+				RegisterWatchtower(config)
+			}
 			return nil
 		},
 	}
