@@ -17,6 +17,8 @@ import (
 	sdkEcdsa "github.com/Layr-Labs/eigensdk-go/crypto/ecdsa"
 )
 
+const W3SECRETPASSPHRASE = "W3SECRETPASSPHRASE"
+
 var m_useEncryptedKeys bool = false
 var m_isFullPath bool = false
 var m_retryMounting bool = false
@@ -28,6 +30,7 @@ var m_goCryptFSConfig string = filepath.Join(m_gocryptfsEncDir, GoCryptFSConfigN
 
 var m_w3SecretKeyDir string = filepath.Join(GetUserHomeDir(), WitnesschainCLIPath, W3SecretKeyDirName)
 var m_w3SecretKeysPassword string = ""
+
 
 func KeysCmd() *cli.Command {
 	var keysCmd = &cli.Command{
@@ -483,6 +486,12 @@ func GetGocryptfsPrivateKey(keyName string) string {
 }
 
 func GetW3SecretStoragePrivateKey(keyName string) string {
+	w3secretPassphrase := os.Getenv(W3SECRETPASSPHRASE)
+	if len(w3secretPassphrase) != 0 {
+		m_w3SecretKeysPassword = w3secretPassphrase
+		os.Unsetenv(W3SECRETPASSPHRASE)
+	}
+
 	if m_w3SecretKeysPassword == "" {
 		m_w3SecretKeysPassword = GetPasswordFromPrompt(true, "export web3 secret storage keys")
 	}
