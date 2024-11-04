@@ -19,6 +19,20 @@ env:
   CLI_NAME: "operator-cli"
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.23.0"
+
+      - name: Run test
+        working-directory: ${{ env.OPERATOR_CLI_DIR }}
+        run: make test
+    
   build-operator-cli:
     strategy:
       matrix:

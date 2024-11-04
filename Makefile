@@ -1,4 +1,4 @@
-build: cmd/operator-cli/main.go 
+build:
 	go build -o operator-cli -ldflags "-X main.VERSION="$$(git describe --tags --abbrev=0) cmd/operator-cli/main.go 
 
 test: build
