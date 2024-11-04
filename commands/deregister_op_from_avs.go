@@ -10,7 +10,7 @@ import (
 	"github.com/witnesschain-com/operator-cli/common/bindings/AvsDirectory"
 	"github.com/witnesschain-com/operator-cli/common/bindings/OperatorRegistry"
 	"github.com/witnesschain-com/operator-cli/common/bindings/WitnessHub"
-	operator_config "github.com/witnesschain-com/operator-cli/watchtower-operator/config"
+	operator_config "github.com/witnesschain-com/operator-cli/config"
 
 	"github.com/urfave/cli/v2"
 )

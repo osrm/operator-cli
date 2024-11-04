@@ -1,4 +1,2 @@
-.gocryptfs
-.w3secretkeys
 main
-watchtower-operator/watchtower-operator
+operator-cli
