@@ -2,6 +2,7 @@ package operator_commands
 
 import (
 	"fmt"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/witnesschain-com/diligencewatchtower-client/keystore"
@@ -54,6 +55,10 @@ func DeRegisterWatchtower(config *operator_config.OperatorConfig) {
 	}
 
 	transactOpts := operatorVault.NewTransactOpts(config.ChainID)
+
+	if (wc_common.NetworkConfig[config.ChainID.String()].GasPrice == -1){
+		transactOpts.GasPrice = big.NewInt(0)
+	}
 
 	for _, watchtowerAddress := range config.WatchtowerAddresses {
 		fmt.Println("Deregister watchtower: " + watchtowerAddress.Hex())

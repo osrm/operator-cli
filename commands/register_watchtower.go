@@ -3,6 +3,7 @@ package operator_commands
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/witnesschain-com/diligencewatchtower-client/keystore"
@@ -58,6 +59,10 @@ func RegisterWatchtower(config *operator_config.OperatorConfig) {
 	}
 
 	transactOpts := operatorVault.NewTransactOpts(config.ChainID)
+
+	if (wc_common.NetworkConfig[config.ChainID.String()].GasPrice == -1){
+		transactOpts.GasPrice = big.NewInt(0)
+	}
 
 	expiry := wc_common.CalculateExpiry(client, config.ExpiryInDays)
 

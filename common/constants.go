@@ -36,6 +36,7 @@ type ChainConfig struct {
 	DiligenceProofManagerAddress common.Address
 	ChainID                      big.Int
 	BlockExplorer                string
+	GasPrice                     int
 }
 
 var BlueOrangutan = ChainConfig{
@@ -43,6 +44,7 @@ var BlueOrangutan = ChainConfig{
 	DiligenceProofManagerAddress: common.HexToAddress("0x7AB3b14F3177935d4539d80289906633615393F2"),
 	ChainID:                      *big.NewInt(1237146866),
 	BlockExplorer:                "https://blue-orangutan-blockscout.eu-north-2.gateway.fm",
+	GasPrice:                     -1,
 }
 
 var Holesky = ChainConfig{
@@ -58,6 +60,7 @@ var WitnesschainMainnet = ChainConfig{
 	DiligenceProofManagerAddress: common.HexToAddress("0x7AB3b14F3177935d4539d80289906633615393F2"),
 	BlockExplorer:                "https://explorer.witnesschain.com",
 	ChainID:                      *big.NewInt(1702448187),
+	GasPrice:                     -1,
 }
 
 var EthMainnet = ChainConfig{
