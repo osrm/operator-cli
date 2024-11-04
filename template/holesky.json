@@ -3,5 +3,5 @@
     "7e2dfe5b018ff9c4e4a48d8e195cb64c335f92cca1fff34b776b4d173e59f41e"
   ],
   "operator_private_key": "7e2dfe5b018ff9c4e4a48d8e195cb64c335f92cca1fff34b776b4d173e59f41e",
-  "eth_rpc_url": "https://blue-orangutan-rpc.eu-north-2.gateway.fm/"
+  "eth_rpc_url": "https://ethereum-holesky-rpc.publicnode.com"
 }
