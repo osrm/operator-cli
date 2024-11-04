@@ -15,21 +15,10 @@ on:
         default: false
 
 env:
-  OPERATOR_CLI_DIR: ./watchtower-operator-cli
-  CLI_NAME: "watchtower-operator"
+  OPERATOR_CLI_DIR: .
+  CLI_NAME: "operator-cli"
 
 jobs:
-  upload-releasenotes:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: "Upload Artifact"
-        uses: actions/upload-artifact@v3
-        with:
-          name: release_notes
-          path: ${{ env.OPERATOR_CLI_DIR }}/RELEASE_NOTES.md
-
   build-operator-cli:
     strategy:
       matrix:
@@ -52,21 +41,21 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: "1.22.1"
+          go-version: "1.23.0"
 
       - name: Build for release
         if: ${{ github.event_name == 'release' }}
         env:
           CLI_VERSION: ${{ github.event.release.tag_name }}
         working-directory: ${{ env.OPERATOR_CLI_DIR }}
-        run: go build -o ${{env.CLI_NAME}}_${{matrix.os-label}} -ldflags "-X main.VERSION=${{ env.CLI_VERSION }}" .
+        run: go build -o ${{env.CLI_NAME}}_${{matrix.os-label}} -ldflags "-X main.VERSION=${{ env.CLI_VERSION }}" cmd/operator-cli/main.go
       
       - name: Build for Dispatch
         if: ${{ github.event_name == 'workflow_dispatch' }}
         env:
           CLI_VERSION: ${{ github.event.inputs.version }}
         working-directory: ${{ env.OPERATOR_CLI_DIR }}
-        run: go build -o ${{env.CLI_NAME}}_${{matrix.os-label}} -ldflags "-X main.VERSION=${{ env.CLI_VERSION }}" .
+        run: go build -o ${{env.CLI_NAME}}_${{matrix.os-label}} -ldflags "-X main.VERSION=${{ env.CLI_VERSION }}" cmd/operator-cli/main.go
 
       - name: List Output
         run: ls -ltr ${{ env.OPERATOR_CLI_DIR }}
@@ -78,6 +67,17 @@ jobs:
           path: ${{ env.OPERATOR_CLI_DIR }}/${{env.CLI_NAME}}_${{matrix.os-label}}
           retention-days: 1
   
+  upload-releasenotes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: "Upload Artifact"
+        uses: actions/upload-artifact@v3
+        with:
+          name: release_notes
+          path: ${{ env.OPERATOR_CLI_DIR }}/RELEASE_NOTES.md
+
   create-public-release:
     strategy:
       matrix:
@@ -108,4 +108,5 @@ jobs:
           body_path: ./release_notes/RELEASE_NOTES.md
           files: |
             ./operator-cli-binary/${{ env.CLI_NAME}}_${{matrix.os-label}}
+
 
